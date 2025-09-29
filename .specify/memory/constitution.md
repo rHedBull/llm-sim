@@ -1,25 +1,22 @@
 <!-- Sync Impact Report
-Version Change: 1.1.0 → 1.2.0 (Added Test-First Development, Clean Interface Design, and Observability principles)
+Version Change: 1.2.0 → 1.3.0 (Added Python Package Management principle)
 Modified Principles:
   - None
 Added Sections:
-  - Principle 4: Test-First Development
-  - Principle 5: Clean Interface Design
-  - Principle 6: Observability and Debugging
+  - Principle 7: Python Package Management with uv
 Removed Sections:
   - None
 Templates Requiring Updates:
-  ✅ .specify/templates/plan-template.md (updated)
-  ✅ .specify/templates/spec-template.md (updated)
-  ✅ .specify/templates/tasks-template.md (updated)
-  ✅ .specify/templates/commands/constitution.md (updated)
+  ⚠ .specify/templates/plan-template.md (pending - needs uv references)
+  ⚠ .specify/templates/spec-template.md (pending - needs package management requirements)
+  ⚠ .specify/templates/tasks-template.md (pending - needs uv task categories)
 Follow-up TODOs:
-  - None
+  - Update templates to reference uv for all Python dependency management
 -->
 
 # Project Constitution: LLM Simulation Framework
 
-**VERSION**: 1.2.0
+**VERSION**: 1.3.0
 **RATIFICATION_DATE**: 2025-01-29
 **LAST_AMENDED_DATE**: 2025-01-29
 **PROJECT_NAME**: LLM Simulation Framework
@@ -123,6 +120,24 @@ This constitution establishes the fundamental principles and governance model fo
 - Debug mode MUST provide detailed execution traces
 - All I/O MUST be text-based for inspectability
 - Performance metrics MUST be logged for analysis
+
+### Principle 7: Python Package Management with uv
+
+**Name**: Unified Package Management
+
+**Description**: All Python dependency management and package operations MUST use `uv` as the exclusive package manager. All Python scripts and commands MUST be executed through `uv run` to ensure consistent environment isolation and dependency resolution. Direct pip usage or other package managers are strictly forbidden.
+
+**Rationale**: `uv` provides fast, reliable, and deterministic dependency resolution with built-in virtual environment management. Using a single package manager eliminates version conflicts, ensures reproducible builds, and simplifies the development workflow. The `uv run` pattern guarantees that code always executes in the correct environment with proper dependencies.
+
+**Implementation Requirements**:
+- All dependency installation MUST use `uv add` or `uv pip install`
+- Python scripts MUST be executed with `uv run python` or `uv run <script>`
+- Tests MUST be run with `uv run pytest` or equivalent
+- Development tools MUST be invoked through `uv run` (e.g., `uv run black`, `uv run mypy`)
+- Virtual environments are managed automatically by uv (no manual venv creation)
+- The `pyproject.toml` file MUST be the single source of truth for dependencies
+- CI/CD pipelines MUST use uv for all Python operations
+- Documentation MUST reference uv commands exclusively for Python setup
 
 ## Technical Standards
 
@@ -322,6 +337,38 @@ except ValidationError as e:
         remediation="Check action format against schema at docs/action-schema.json"
     )
     raise
+```
+
+### Python Package Management Example
+```bash
+# BAD: Inconsistent package management
+pip install numpy
+python script.py
+python -m pytest tests/
+
+# Also BAD: Manual virtual environment management
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# GOOD: Unified uv usage
+uv add numpy
+uv run python script.py
+uv run pytest tests/
+
+# GOOD: Development workflow
+uv sync  # Install all dependencies from pyproject.toml
+uv run mypy src/  # Run type checking
+uv run black .  # Format code
+uv run python -m llm_sim.main  # Run the application
+
+# GOOD: CI/CD pipeline
+- name: Setup Python with uv
+  run: |
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    uv sync
+    uv run pytest --cov
+    uv run mypy src/
 ```
 
 ---
