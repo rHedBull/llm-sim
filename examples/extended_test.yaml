@@ -1,0 +1,37 @@
+# Extended Test Configuration
+# Longer simulation with multiple nations and termination conditions
+
+simulation:
+  name: "Extended Economic Test"
+  max_turns: 200
+  termination:
+    min_value: 100.0     # Stop if economy crashes below 100
+    max_value: 50000.0   # Stop if economy exceeds 50,000
+
+engine:
+  type: economic
+  interest_rate: 0.03  # 3% growth per turn
+
+agents:
+  - name: Nation_Alpha
+    type: nation
+    initial_economic_strength: 1000.0
+
+  - name: Nation_Beta
+    type: nation
+    initial_economic_strength: 1200.0
+
+  - name: Nation_Gamma
+    type: nation
+    initial_economic_strength: 800.0
+
+  - name: Nation_Delta
+    type: nation
+    initial_economic_strength: 1500.0
+
+validator:
+  type: always_valid
+
+logging:
+  level: INFO
+  format: json
