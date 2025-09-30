@@ -1,0 +1,45 @@
+# Hybrid Simulation - Mix of Rule-based and LLM Components
+# Shows how LLM and traditional components can coexist
+
+simulation:
+  name: "Hybrid Economic Simulation"
+  max_turns: 15
+  termination:
+    min_value: 0.0
+    max_value: 1000000.0
+
+# LLM config (only needed for LLM components)
+llm:
+  model: "gemma:3"
+  host: "http://localhost:11434"
+  timeout: 60.0
+  max_retries: 1
+  temperature: 0.7
+  stream: false
+
+# Mix of agent types
+agents:
+  # Traditional rule-based agent
+  - name: "RuleBasedNation"
+    type: nation
+    initial_economic_strength: 100.0
+
+  # LLM-powered economic policy agent
+  - name: "LLMNation"
+    type: econ_llm_agent
+    initial_economic_strength: 100.0
+
+# Use LLM validator to ensure economic domain
+validator:
+  type: econ_llm_validator
+  domain: economic
+  permissive: true
+
+# Use LLM engine for state updates
+engine:
+  type: econ_llm_engine
+  interest_rate: 0.03
+
+logging:
+  level: INFO
+  format: console

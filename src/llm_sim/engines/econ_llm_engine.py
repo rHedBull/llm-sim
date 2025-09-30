@@ -1,13 +1,73 @@
 """Concrete economic LLM engine implementation."""
 
+from typing import Dict
+
 from llm_sim.engines.llm_engine import LLMEngine
 from llm_sim.models.action import Action
 from llm_sim.models.llm_models import StateUpdateDecision
-from llm_sim.models.state import SimulationState, GlobalState
+from llm_sim.models.state import SimulationState, GlobalState, AgentState
 
 
 class EconLLMEngine(LLMEngine):
     """Engine that updates economic state based on LLM reasoning."""
+
+    def initialize_state(self) -> SimulationState:
+        """Create initial state with agents' starting economic values.
+
+        Returns:
+            Initial simulation state
+        """
+        agents: Dict[str, AgentState] = {}
+        total_value = 0.0
+
+        for agent_config in self.config.agents:
+            agents[agent_config.name] = AgentState(
+                name=agent_config.name,
+                economic_strength=agent_config.initial_economic_strength,
+            )
+            total_value += agent_config.initial_economic_strength
+
+        state = SimulationState(
+            turn=0,
+            agents=agents,
+            global_state=GlobalState(
+                interest_rate=self.config.engine.interest_rate,
+                total_economic_value=total_value,
+                gdp_growth=2.5,  # Default initial values
+                inflation=3.0,
+                unemployment=5.0,
+            ),
+            reasoning_chains=[]
+        )
+
+        self.current_state = state
+        return state
+
+    def check_termination(self, state: SimulationState) -> bool:
+        """Check if simulation should terminate.
+
+        Args:
+            state: Current simulation state
+
+        Returns:
+            True if max turns reached or termination conditions met
+        """
+        # Check max turns
+        if state.turn >= self.config.simulation.max_turns:
+            return True
+
+        # Check value thresholds if configured
+        total_value = state.global_state.total_economic_value
+
+        if self.config.simulation.termination.min_value is not None:
+            if total_value < self.config.simulation.termination.min_value:
+                return True
+
+        if self.config.simulation.termination.max_value is not None:
+            if total_value > self.config.simulation.termination.max_value:
+                return True
+
+        return False
 
     def _construct_state_update_prompt(self, action: Action, state: GlobalState) -> str:
         """Construct prompt for LLM to calculate new interest rate.
