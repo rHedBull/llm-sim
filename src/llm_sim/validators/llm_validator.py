@@ -7,7 +7,7 @@ from typing import List
 import structlog
 
 from llm_sim.validators.base import BaseValidator
-from llm_sim.models.action import Action
+from llm_sim.models.action import Action, LLMAction
 from llm_sim.models.llm_models import ValidationResult
 from llm_sim.models.state import SimulationState
 from llm_sim.utils.llm_client import LLMClient
@@ -37,12 +37,13 @@ class LLMValidator(BaseValidator):
         self.permissive = permissive
 
     @abstractmethod
-    def _construct_validation_prompt(self, action: Action) -> str:
+    def _construct_validation_prompt(self, action: LLMAction, state: SimulationState) -> str:
         """Construct domain-specific validation prompt.
-        
+
         Args:
             action: Action to validate
-            
+            state: Current simulation state
+
         Returns:
             Prompt string to send to LLM
         """
@@ -71,44 +72,44 @@ class LLMValidator(BaseValidator):
         return True
 
     async def validate_actions(
-        self, actions: List[Action], state: SimulationState
-    ) -> List[Action]:
+        self, actions: List[LLMAction], state: SimulationState
+    ) -> List[LLMAction]:
         """Validate actions using LLM reasoning.
-        
+
         Args:
-            actions: Actions to validate
+            actions: LLM actions to validate
             state: Current simulation state
-            
+
         Returns:
             Same list of actions with validated field updated
         """
         validated_actions = []
-        
+
         for action in actions:
             start_time = datetime.now()
-            
+
             # Step 1: Construct validation prompt
-            prompt = self._construct_validation_prompt(action)
-            
+            prompt = self._construct_validation_prompt(action, state)
+
             # Step 2: Call LLM with retry logic
             result = await self.llm_client.call_with_retry(
                 prompt=prompt,
                 response_model=ValidationResult
             )
-            
+
             duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-            
+
             # Step 3: Log reasoning chain at DEBUG level
             logger.debug(
                 "llm_reasoning_chain",
                 component="validator",
-                action=action.action_string,
+                action=action.action_name,
                 is_valid=result.is_valid,
                 reasoning=result.reasoning,
                 confidence=result.confidence,
                 duration_ms=duration_ms
             )
-            
+
             # Step 4: Mark action as validated or not and update counters
             if result.is_valid:
                 validated_action = action.model_copy(
@@ -129,5 +130,5 @@ class LLMValidator(BaseValidator):
                 self.rejection_count += 1
 
             validated_actions.append(validated_action)
-        
+
         return validated_actions

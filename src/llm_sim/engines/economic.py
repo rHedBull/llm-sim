@@ -70,7 +70,7 @@ class EconomicEngine(BaseEngine):
             logger.debug(
                 "processing_action",
                 agent=action.agent_name,
-                action_type=action.action_type.value,
+                action_name=action.action_name,
                 validated=action.validated,
             )
 

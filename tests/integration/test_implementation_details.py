@@ -6,7 +6,7 @@ from typing import List
 from llm_sim.orchestrator import SimulationOrchestrator
 from llm_sim.models.config import SimulationConfig
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
-from llm_sim.models.action import Action, ActionType
+from llm_sim.models.action import Action
 from llm_sim.engines.economic import EconomicEngine
 from llm_sim.agents.nation import NationAgent
 from llm_sim.validators.always_valid import AlwaysValidValidator
@@ -67,7 +67,7 @@ class TestActualImplementation:
         )
 
         grow_action = grow_agent.decide_action(state)
-        assert grow_action.action_type == ActionType.GROW
+        assert grow_action.action_name == "grow"
         assert grow_action.agent_name == "GrowNation"
         assert grow_action.parameters["strength"] == 1000.0
 
@@ -82,7 +82,7 @@ class TestActualImplementation:
         )
 
         maintain_action = maintain_agent.decide_action(state)
-        assert maintain_action.action_type == ActionType.MAINTAIN
+        assert maintain_action.action_name == "maintain"
         assert maintain_action.parameters["strength"] == 2000.0
 
         # Test decline strategy
@@ -94,7 +94,7 @@ class TestActualImplementation:
         )
 
         decline_action = decline_agent.decide_action(state)
-        assert decline_action.action_type == ActionType.DECLINE
+        assert decline_action.action_name == "decline"
         assert decline_action.parameters["strength"] == 3000.0
 
     def test_validator_marks_actions_correctly(self) -> None:
@@ -109,8 +109,8 @@ class TestActualImplementation:
 
         # Create unvalidated actions
         actions = [
-            Action(agent_name="Nation", action_type=ActionType.GROW, parameters={"value": 100}),
-            Action(agent_name="Nation", action_type=ActionType.MAINTAIN, parameters={"value": 200}),
+            Action(agent_name="Nation", action_name="grow", parameters={"value": 100}),
+            Action(agent_name="Nation", action_name="maintain", parameters={"value": 200}),
         ]
 
         # Ensure actions are not validated initially
@@ -265,4 +265,4 @@ class TestActualImplementation:
         assert "strength" in action.parameters
         assert action.parameters["strength"] == 1234.56
         assert action.agent_name == "TestNation"
-        assert action.action_type == ActionType.GROW
+        assert action.action_name == "grow"

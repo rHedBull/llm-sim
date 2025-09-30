@@ -52,7 +52,7 @@ async def test_econ_engine_processes_validated_action():
     engine.current_state = initial_state
 
     actions = [
-        Action(agent_name="USA", action_string="Lower interest rates", validated=True)
+        Action(agent_name="USA", action_name="Lower interest rates", validated=True)
     ]
 
     # When: Running turn
@@ -72,7 +72,7 @@ def test_econ_engine_constructs_economic_prompt():
 
     action = Action(
         agent_name="USA",
-        action_string="Lower interest rates by 0.5%",
+        action_name="Lower interest rates by 0.5%",
         validated=True
     )
 
@@ -88,7 +88,7 @@ def test_econ_engine_constructs_economic_prompt():
 
     # Then: Prompt includes current rate and action
     assert "2.5" in prompt or "interest" in prompt.lower()
-    assert "Lower interest rates" in prompt or action.action_string in prompt
+    assert "Lower interest rates" in prompt or action.action_name in prompt
 
 
 def test_econ_engine_applies_interest_rate_update():
@@ -167,8 +167,8 @@ async def test_econ_engine_sequential_aggregation():
     engine.current_state = initial_state
 
     actions = [
-        Action(agent_name="Agent1", action_string="action1", validated=True),
-        Action(agent_name="Agent2", action_string="action2", validated=True)
+        Action(agent_name="Agent1", action_name="action1", validated=True),
+        Action(agent_name="Agent2", action_name="action2", validated=True)
     ]
 
     # When: Running turn with multiple actions

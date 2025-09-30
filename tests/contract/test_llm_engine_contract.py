@@ -38,7 +38,7 @@ async def test_llm_engine_run_turn_workflow():
     # Given: Mock concrete implementation
     class TestLLMEngine(LLMEngine):
         def _construct_state_update_prompt(self, action, state):
-            return f"Update state for: {action.action_string}"
+            return f"Update state for: {action.action_name}"
 
         def _apply_state_update(self, decision, state):
             # Simple update: return state unchanged (turn incremented in run_turn)
@@ -77,8 +77,8 @@ async def test_llm_engine_run_turn_workflow():
     engine.current_state = initial_state
 
     actions = [
-        Action(agent_name="Agent1", action_string="Lower rates", validated=True),
-        Action(agent_name="Agent2", action_string="Invalid action", validated=False)
+        Action(agent_name="Agent1", action_name="Lower rates", validated=True),
+        Action(agent_name="Agent2", action_name="Invalid action", validated=False)
     ]
 
     # When: Running turn
@@ -124,7 +124,7 @@ async def test_llm_engine_skips_unvalidated_with_log():
     engine.current_state = initial_state
 
     actions = [
-        Action(agent_name="SkippedAgent", action_string="action", validated=False)
+        Action(agent_name="SkippedAgent", action_name="action", validated=False)
     ]
 
     # When: Running turn with unvalidated action
@@ -181,7 +181,7 @@ async def test_llm_engine_attaches_reasoning_chains():
     engine.current_state = initial_state
 
     actions = [
-        Action(agent_name="Agent1", action_string="action", validated=True)
+        Action(agent_name="Agent1", action_name="action", validated=True)
     ]
 
     # When: Running turn

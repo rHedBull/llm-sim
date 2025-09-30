@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 try:
     from llm_sim.validators.llm_validator import LLMValidator
     from llm_sim.models.llm_models import ValidationResult
-    from llm_sim.models.action import Action
+    from llm_sim.models.action import Action, LLMAction
     from llm_sim.models.state import SimulationState, GlobalState
     from llm_sim.utils.llm_client import LLMClient
 except ImportError:
@@ -36,8 +36,8 @@ async def test_llm_validator_validate_actions_workflow():
 
     # Given: Mock concrete implementation
     class TestLLMValidator(LLMValidator):
-        def _construct_validation_prompt(self, action):
-            return f"Validate: {action.action_string}"
+        def _construct_validation_prompt(self, action, state):
+            return f"Validate: {action.action_name}"
 
         def _get_domain_description(self):
             return "test domain"
@@ -65,8 +65,8 @@ async def test_llm_validator_validate_actions_workflow():
     )
 
     actions = [
-        Action(agent_name="Agent1", action_string="action 1", validated=False),
-        Action(agent_name="Agent2", action_string="action 2", validated=False)
+        LLMAction(agent_name="Agent1", action_name="action 1", validated=False),
+        LLMAction(agent_name="Agent2", action_name="action 2", validated=False)
     ]
 
     state = SimulationState(
@@ -96,8 +96,8 @@ async def test_llm_validator_logs_reasoning_chain():
 
     # Given: Mock implementation
     class TestLLMValidator(LLMValidator):
-        def _construct_validation_prompt(self, action):
-            return f"Validate: {action.action_string}"
+        def _construct_validation_prompt(self, action, state):
+            return f"Validate: {action.action_name}"
 
         def _get_domain_description(self):
             return "test domain"
@@ -117,7 +117,7 @@ async def test_llm_validator_logs_reasoning_chain():
     )
 
     actions = [
-        Action(agent_name="Agent1", action_string="test action", validated=False)
+        LLMAction(agent_name="Agent1", action_name="test action", validated=False)
     ]
 
     state = SimulationState(
@@ -146,7 +146,7 @@ async def test_llm_validator_returns_same_length_list():
 
     # Given: Mock implementation
     class TestLLMValidator(LLMValidator):
-        def _construct_validation_prompt(self, action):
+        def _construct_validation_prompt(self, action, state):
             return "validate"
 
         def _get_domain_description(self):
@@ -167,7 +167,7 @@ async def test_llm_validator_returns_same_length_list():
     )
 
     actions = [
-        Action(agent_name=f"Agent{i}", action_string=f"action {i}", validated=False)
+        LLMAction(agent_name=f"Agent{i}", action_name=f"action {i}", validated=False)
         for i in range(5)
     ]
 

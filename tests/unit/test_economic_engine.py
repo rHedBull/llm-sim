@@ -2,7 +2,7 @@
 
 
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
-from llm_sim.models.action import Action, ActionType
+from llm_sim.models.action import Action
 from llm_sim.models.config import (
     SimulationConfig,
     SimulationSettings,
@@ -88,7 +88,7 @@ class TestEconomicEngine:
         actions = [
             Action(
                 agent_name="Nation_A",
-                action_type=ActionType.GROW,
+                action_name="grow",
                 parameters={},
                 validated=True,
             )
@@ -208,7 +208,7 @@ class TestEconomicEngine:
         actions = [
             Action(
                 agent_name="Nation_A",
-                action_type=ActionType.GROW,
+                action_name="grow",
                 parameters={},
                 validated=True,
             )

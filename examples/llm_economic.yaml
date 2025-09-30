@@ -9,7 +9,7 @@
 
 simulation:
   name: "LLM Economic Policy Simulation"
-  max_turns: 10
+  max_turns: 2
   termination:
     min_value: null
     max_value: null

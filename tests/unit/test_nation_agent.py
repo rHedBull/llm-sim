@@ -3,7 +3,6 @@
 import pytest
 
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
-from llm_sim.models.action import ActionType
 from llm_sim.agents.nation import NationAgent
 
 
@@ -35,7 +34,7 @@ class TestNationAgent:
         action = agent.decide_action(state)
 
         assert action.agent_name == "Nation_A"
-        assert action.action_type == ActionType.GROW
+        assert action.action_name == "grow"
         assert action.parameters["strength"] == 1000.0
         assert not action.validated
 
@@ -52,7 +51,7 @@ class TestNationAgent:
         action = agent.decide_action(state)
 
         assert action.agent_name == "Nation_B"
-        assert action.action_type == ActionType.MAINTAIN
+        assert action.action_name == "maintain"
         assert action.parameters["strength"] == 2000.0
 
     def test_decide_action_decline(self) -> None:
@@ -68,7 +67,7 @@ class TestNationAgent:
         action = agent.decide_action(state)
 
         assert action.agent_name == "Nation_C"
-        assert action.action_type == ActionType.DECLINE
+        assert action.action_name == "decline"
         assert action.parameters["strength"] == 500.0
 
     def test_receive_state(self) -> None:

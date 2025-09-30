@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
-from llm_sim.models.action import Action, ActionType
+from llm_sim.models.action import Action
 from llm_sim.validators.always_valid import AlwaysValidValidator
 
 
@@ -27,12 +27,12 @@ class TestAlwaysValidValidator:
         )
 
         # Test with valid agent
-        action_valid = Action(agent_name="Nation_A", action_type=ActionType.GROW, parameters={})
+        action_valid = Action(agent_name="Nation_A", action_name="grow", parameters={})
         assert validator.validate_action(action_valid, state) is True
 
         # Test with non-existent agent (still returns True for AlwaysValid)
         action_invalid = Action(
-            agent_name="NonExistent", action_type=ActionType.GROW, parameters={}
+            agent_name="NonExistent", action_name="grow", parameters={}
         )
         assert validator.validate_action(action_invalid, state) is True
 
@@ -50,8 +50,8 @@ class TestAlwaysValidValidator:
         )
 
         actions = [
-            Action(agent_name="Nation_A", action_type=ActionType.GROW, parameters={}),
-            Action(agent_name="Nation_B", action_type=ActionType.MAINTAIN, parameters={}),
+            Action(agent_name="Nation_A", action_name="grow", parameters={}),
+            Action(agent_name="Nation_B", action_name="grow", parameters={}),
         ]
 
         validated_actions = validator.validate_actions(actions, state)
@@ -82,7 +82,7 @@ class TestAlwaysValidValidator:
 
         # Validate some actions
         actions = [
-            Action(agent_name="Nation_A", action_type=ActionType.GROW, parameters={})
+            Action(agent_name="Nation_A", action_name="grow", parameters={})
             for _ in range(5)
         ]
         validator.validate_actions(actions, state)
@@ -102,7 +102,7 @@ class TestAlwaysValidValidator:
             global_state=GlobalState(interest_rate=0.05, total_economic_value=1000.0),
         )
 
-        original_action = Action(agent_name="Nation_A", action_type=ActionType.GROW, parameters={})
+        original_action = Action(agent_name="Nation_A", action_name="grow", parameters={})
         assert not original_action.validated
         assert original_action.validation_timestamp is None
 
@@ -118,4 +118,4 @@ class TestAlwaysValidValidator:
         assert validated_action.validation_timestamp is not None
         assert isinstance(validated_action.validation_timestamp, datetime)
         assert validated_action.agent_name == original_action.agent_name
-        assert validated_action.action_type == original_action.action_type
+        assert validated_action.action_name == original_action.action_name

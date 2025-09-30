@@ -4,7 +4,7 @@ import pytest
 from typing import List
 
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
-from llm_sim.models.action import Action, ActionType
+from llm_sim.models.action import Action
 from llm_sim.models.config import (
     SimulationConfig,
     SimulationSettings,
@@ -137,7 +137,7 @@ class TestBaseAgent:
             def decide_action(self, state: SimulationState) -> Action:
                 return Action(
                     agent_name=self.name,
-                    action_type=ActionType.GROW,
+                    action_name="grow",
                     parameters={},
                 )
 
@@ -156,7 +156,7 @@ class TestBaseAgent:
 
         action = agent.decide_action(state)
         assert action.agent_name == "TestAgent"
-        assert action.action_type == ActionType.GROW
+        assert action.action_name == "grow"
 
 
 class TestBaseValidator:
@@ -190,7 +190,7 @@ class TestBaseValidator:
             global_state=GlobalState(interest_rate=0.05, total_economic_value=1000.0),
         )
 
-        action = Action(agent_name="Test", action_type=ActionType.GROW, parameters={})
+        action = Action(agent_name="Test", action_name="grow", parameters={})
 
         assert validator.validate_action(action, state)
 
@@ -221,8 +221,8 @@ class TestBaseValidator:
         )
 
         actions = [
-            Action(agent_name="Test", action_type=ActionType.GROW, parameters={}),
-            Action(agent_name="Reject", action_type=ActionType.GROW, parameters={}),
+            Action(agent_name="Test", action_name="grow", parameters={}),
+            Action(agent_name="Reject", action_name="grow", parameters={}),
         ]
 
         validated = validator.validate_actions(actions, state)

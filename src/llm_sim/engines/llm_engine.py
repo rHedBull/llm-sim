@@ -99,7 +99,7 @@ class LLMEngine(BaseEngine):
                 logger.info(
                     "action_skipped",
                     agent=action.agent_name,
-                    action=action.action_string,
+                    action=action.action_name,
                     reason="unvalidated"
                 )
                 logger.info(
@@ -127,7 +127,7 @@ class LLMEngine(BaseEngine):
             logger.debug(
                 "llm_reasoning_chain",
                 component="engine",
-                action=action.action_string,
+                action=action.action_name,
                 reasoning=decision.reasoning,
                 confidence=decision.confidence,
                 duration_ms=duration_ms

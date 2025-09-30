@@ -4,7 +4,6 @@ import pytest
 
 from llm_sim.agents.nation import NationAgent
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
-from llm_sim.models.action import ActionType
 from llm_sim.orchestrator import SimulationOrchestrator
 from llm_sim.models.config import SimulationConfig
 
@@ -71,14 +70,10 @@ class TestNationAgentImplementation:
 
     def test_nation_agent_action_decision_logic(self) -> None:
         """Test the actual decision logic of NationAgent."""
-        # Test each strategy produces correct action type
-        strategies_and_types = [
-            ("grow", ActionType.GROW),
-            ("maintain", ActionType.MAINTAIN),
-            ("decline", ActionType.DECLINE),
-        ]
+        # Test each strategy produces correct action name
+        strategies = ["grow", "maintain", "decline"]
 
-        for strategy, expected_type in strategies_and_types:
+        for strategy in strategies:
             agent = NationAgent(name=f"TestNation_{strategy}", strategy=strategy)
 
             state = SimulationState(
@@ -95,7 +90,7 @@ class TestNationAgentImplementation:
 
             # Verify action properties
             assert action.agent_name == f"TestNation_{strategy}"
-            assert action.action_type == expected_type
+            assert action.action_name == strategy
             assert action.parameters["strength"] == 1234.56
             assert not action.validated  # Actions start unvalidated
 
@@ -178,8 +173,8 @@ class TestNationAgentImplementation:
 
             action = agent.decide_action(state)
 
-            # Strategy should always produce DECLINE action
-            assert action.action_type == ActionType.DECLINE
+            # Strategy should always produce decline action
+            assert action.action_name == "decline"
             assert agent.strategy == "decline"  # Strategy shouldn't change
 
     def test_nation_agent_parameter_passing(self) -> None:

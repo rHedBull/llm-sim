@@ -30,7 +30,7 @@ class AlwaysValidValidator(BaseValidator):
         logger.info(
             "validating_action",
             agent=action.agent_name,
-            action_type=action.action_type.value,
+            action_name=action.action_name,
             turn=state.turn,
             result="valid",
         )

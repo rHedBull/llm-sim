@@ -1,7 +1,7 @@
 """Nation agent implementation."""
 
 from llm_sim.agents.base import BaseAgent
-from llm_sim.models.action import Action, ActionType
+from llm_sim.models.action import Action
 from llm_sim.models.state import SimulationState
 from llm_sim.utils.logging import get_logger
 
@@ -47,25 +47,20 @@ class NationAgent(BaseAgent):
         if self.name not in state.agents:
             raise KeyError(f"Agent '{self.name}' not found in state")
 
-        action_type = ActionType.GROW  # Default
-
-        if self.strategy == "maintain":
-            action_type = ActionType.MAINTAIN
-        elif self.strategy == "decline":
-            action_type = ActionType.DECLINE
+        action_name = self.strategy  # Use strategy directly as action name
 
         current_strength = state.agents[self.name].economic_strength
 
         action = Action(
             agent_name=self.name,
-            action_type=action_type,
+            action_name=action_name,
             parameters={"strength": current_strength},
         )
 
         logger.debug(
             "action_decided",
             agent=self.name,
-            action_type=action_type.value,
+            action=action_name,
             strength=current_strength,
             turn=state.turn,
         )

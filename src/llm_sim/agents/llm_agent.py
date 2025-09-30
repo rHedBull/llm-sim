@@ -6,7 +6,7 @@ from datetime import datetime
 import structlog
 
 from llm_sim.agents.base import BaseAgent
-from llm_sim.models.action import Action
+from llm_sim.models.action import Action, LLMAction
 from llm_sim.models.llm_models import PolicyDecision
 from llm_sim.models.state import SimulationState
 from llm_sim.utils.llm_client import LLMClient
@@ -101,11 +101,13 @@ class LLMAgent(BaseAgent):
             duration_ms=duration_ms
         )
         
-        # Step 5: Create Action with policy decision
-        action = Action(
+        # Step 5: Create LLMAction with policy decision
+        action = LLMAction(
             agent_name=self.name,
+            action_name=decision.action,
             action_string=decision.action,
             policy_decision=decision,
+            parameters=getattr(decision, 'parameters', None),
             validated=False  # Will be set by validator
         )
         

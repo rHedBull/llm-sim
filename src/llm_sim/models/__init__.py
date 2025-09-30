@@ -1,6 +1,6 @@
 """Data models for the simulation."""
 
-from .action import Action, ActionType
+from .action import Action
 from .config import (
     AgentConfig,
     EngineConfig,
@@ -14,7 +14,6 @@ from .state import AgentState, GlobalState, SimulationState
 
 __all__ = [
     "Action",
-    "ActionType",
     "AgentConfig",
     "AgentState",
     "EngineConfig",

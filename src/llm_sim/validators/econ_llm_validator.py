@@ -1,7 +1,12 @@
 """Concrete economic LLM validator implementation."""
 
+from typing import TYPE_CHECKING
+
 from llm_sim.validators.llm_validator import LLMValidator
 from llm_sim.models.action import Action
+
+if TYPE_CHECKING:
+    from llm_sim.models.state import SimulationState
 
 
 class EconLLMValidator(LLMValidator):
@@ -16,11 +21,12 @@ class EconLLMValidator(LLMValidator):
         return """Economic domain includes: interest rates, fiscal policy, trade policy, taxation, monetary policy, economic sanctions.
 NON-economic domains: military actions, social policy, foreign diplomacy (unless economically focused)."""
 
-    def _construct_validation_prompt(self, action: Action) -> str:
+    def _construct_validation_prompt(self, action: Action, state: "SimulationState") -> str:
         """Construct validation prompt for economic domain.
 
         Args:
             action: Action to validate
+            state: Current simulation state
 
         Returns:
             Prompt asking LLM to validate domain
@@ -44,7 +50,7 @@ Return JSON:
   "action_evaluated": "the action string"
 }}"""
 
-        USER_MSG = f"""Proposed action: "{action.action_string}"
+        USER_MSG = f"""Proposed action: "{action.action_name}"
 
 Think step-by-step:
 1. What is the primary domain of this action?

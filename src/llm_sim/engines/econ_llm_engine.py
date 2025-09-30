@@ -100,7 +100,7 @@ Return JSON:
 - Inflation: {state.inflation}%
 - GDP Growth: {state.gdp_growth}%
 
-Validated action: "{action.action_string}"
+Validated action: "{action.action_name}"
 
 Think step-by-step:
 1. How does this action affect monetary policy?

@@ -6,7 +6,7 @@ from datetime import datetime
 from pydantic import ValidationError
 
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
-from llm_sim.models.action import Action, ActionType
+from llm_sim.models.action import Action
 from llm_sim.models.config import (
     SimulationConfig,
 )
@@ -149,12 +149,12 @@ class TestAction:
         """Test creating an action."""
         action = Action(
             agent_name="Nation_A",
-            action_type=ActionType.GROW,
+            action_name="grow",
             parameters={"strength": 1000.0},
         )
 
         assert action.agent_name == "Nation_A"
-        assert action.action_type == ActionType.GROW
+        assert action.action_name == "grow"
         assert action.parameters["strength"] == 1000.0
         assert not action.validated
         assert action.validation_timestamp is None
@@ -163,7 +163,7 @@ class TestAction:
         """Test marking an action as validated."""
         action = Action(
             agent_name="Nation_A",
-            action_type=ActionType.GROW,
+            action_name="grow",
             parameters={},
         )
 
@@ -174,21 +174,12 @@ class TestAction:
         assert isinstance(validated_action.validation_timestamp, datetime)
         assert not action.validated  # Original unchanged
 
-    def test_action_types(self) -> None:
-        """Test all action types."""
-        for action_type in [ActionType.GROW, ActionType.MAINTAIN, ActionType.DECLINE]:
+    def test_action_names(self) -> None:
+        """Test various action names."""
+        for action_name in ["grow", "maintain", "decline"]:
             action = Action(
                 agent_name="Test",
-                action_type=action_type,
+                action_name=action_name,
                 parameters={},
             )
-            assert action.action_type == action_type
-
-    def test_invalid_action_type(self) -> None:
-        """Test that invalid action type raises error."""
-        with pytest.raises(ValidationError):
-            Action(
-                agent_name="Test",
-                action_type="invalid",  # type: ignore
-                parameters={},
-            )
+            assert action.action_name == action_name

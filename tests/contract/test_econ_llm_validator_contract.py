@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock
 try:
     from llm_sim.validators.econ_llm_validator import EconLLMValidator
     from llm_sim.models.llm_models import ValidationResult
-    from llm_sim.models.action import Action
+    from llm_sim.models.action import Action, LLMAction
     from llm_sim.models.state import SimulationState, GlobalState
 except ImportError:
     pytest.skip("EconLLMValidator not yet implemented", allow_module_level=True)
@@ -39,9 +39,9 @@ async def test_econ_validator_accepts_economic_action():
     )
 
     actions = [
-        Action(
+        LLMAction(
             agent_name="USA",
-            action_string="Lower interest rates",
+            action_name="Lower interest rates",
             validated=False
         )
     ]
@@ -85,9 +85,9 @@ async def test_econ_validator_rejects_military_action():
     )
 
     actions = [
-        Action(
+        LLMAction(
             agent_name="USA",
-            action_string="Deploy military forces",
+            action_name="Deploy military forces",
             validated=False
         )
     ]
@@ -130,9 +130,9 @@ async def test_econ_validator_uses_permissive_approach():
     )
 
     actions = [
-        Action(
+        LLMAction(
             agent_name="USA",
-            action_string="Impose trade sanctions",
+            action_name="Impose trade sanctions",
             validated=False
         )
     ]
