@@ -54,6 +54,19 @@ class ValidatorConfig(BaseModel):
     """Validator configuration."""
 
     type: str
+    domain: Optional[str] = None  # Required for llm_validator (e.g., "economic")
+    permissive: bool = True  # Per spec FR-005a
+
+
+class LLMConfig(BaseModel):
+    """LLM client configuration."""
+
+    model: str = "gemma:3"
+    host: str = "http://localhost:11434"
+    timeout: float = 60.0
+    max_retries: int = 1  # Per spec FR-014
+    temperature: float = 0.7
+    stream: bool = True
 
 
 class LoggingConfig(BaseModel):
@@ -71,6 +84,7 @@ class SimulationConfig(BaseModel):
     agents: List[AgentConfig]
     validator: ValidatorConfig
     logging: LoggingConfig
+    llm: Optional[LLMConfig] = None  # Optional for backward compatibility
 
     @model_validator(mode="after")
     def validate_unique_agent_names(self) -> "SimulationConfig":

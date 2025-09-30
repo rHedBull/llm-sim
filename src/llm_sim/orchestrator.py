@@ -5,12 +5,16 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from llm_sim.agents.nation import NationAgent
+from llm_sim.agents.econ_llm_agent import EconLLMAgent
 from llm_sim.engines.economic import EconomicEngine
+from llm_sim.engines.econ_llm_engine import EconLLMEngine
 from llm_sim.models.action import Action
 from llm_sim.models.config import SimulationConfig
 from llm_sim.models.state import SimulationState
+from llm_sim.utils.llm_client import LLMClient
 from llm_sim.utils.logging import configure_logging, get_logger
 from llm_sim.validators.always_valid import AlwaysValidValidator
+from llm_sim.validators.econ_llm_validator import EconLLMValidator
 
 logger = get_logger(__name__)
 
@@ -58,7 +62,7 @@ class SimulationOrchestrator:
         """Configure logging based on config."""
         configure_logging(level=self.config.logging.level, format=self.config.logging.format)
 
-    def _create_engine(self) -> EconomicEngine:
+    def _create_engine(self):
         """Create engine based on configuration.
 
         Returns:
@@ -66,12 +70,18 @@ class SimulationOrchestrator:
         """
         if self.config.engine.type == "economic":
             return EconomicEngine(self.config)
+        elif self.config.engine.type == "econ_llm_engine":
+            # NEW: LLM-based economic engine
+            if not self.config.llm:
+                raise ValueError("LLM config required for econ_llm_engine")
+            llm_client = LLMClient(config=self.config.llm)
+            return EconLLMEngine(config=self.config, llm_client=llm_client)
         else:
             raise ValueError(f"Unknown engine type: {self.config.engine.type}")
 
     def _create_agents(
         self, agent_strategies: Optional[Dict[str, str]] = None
-    ) -> List[NationAgent]:
+    ) -> List:
         """Create agents based on configuration.
 
         Args:
@@ -82,6 +92,11 @@ class SimulationOrchestrator:
         """
         agents = []
 
+        # Initialize shared LLM client if LLM config present
+        llm_client = None
+        if self.config.llm:
+            llm_client = LLMClient(config=self.config.llm)
+
         for agent_config in self.config.agents:
             if agent_config.type == "nation":
                 strategy = "grow"  # Default
@@ -90,12 +105,18 @@ class SimulationOrchestrator:
 
                 agent = NationAgent(name=agent_config.name, strategy=strategy)
                 agents.append(agent)
+            elif agent_config.type == "econ_llm_agent":
+                # NEW: LLM-based economic agent
+                if not llm_client:
+                    raise ValueError("LLM config required for econ_llm_agent")
+                agent = EconLLMAgent(name=agent_config.name, llm_client=llm_client)
+                agents.append(agent)
             else:
                 raise ValueError(f"Unknown agent type: {agent_config.type}")
 
         return agents
 
-    def _create_validator(self) -> AlwaysValidValidator:
+    def _create_validator(self):
         """Create validator based on configuration.
 
         Returns:
@@ -103,6 +124,16 @@ class SimulationOrchestrator:
         """
         if self.config.validator.type == "always_valid":
             return AlwaysValidValidator()
+        elif self.config.validator.type == "econ_llm_validator":
+            # NEW: LLM-based economic validator
+            if not self.config.llm:
+                raise ValueError("LLM config required for econ_llm_validator")
+            llm_client = LLMClient(config=self.config.llm)
+            return EconLLMValidator(
+                llm_client=llm_client,
+                domain=self.config.validator.domain or "economic",
+                permissive=self.config.validator.permissive
+            )
         else:
             raise ValueError(f"Unknown validator type: {self.config.validator.type}")
 
@@ -149,8 +180,8 @@ class SimulationOrchestrator:
 
         return {"final_state": state, "history": self.history, "stats": stats}
 
-    def _run_turn(self, state: SimulationState) -> SimulationState:
-        """Run a single simulation turn.
+    async def _run_turn_async(self, state: SimulationState) -> SimulationState:
+        """Run a single simulation turn asynchronously (for LLM-based components).
 
         Args:
             state: Current simulation state
@@ -165,16 +196,57 @@ class SimulationOrchestrator:
         # Collect actions from agents
         actions: List[Action] = []
         for agent in self.agents:
-            action = agent.decide_action(state)
+            action = await agent.decide_action(state)
             actions.append(action)
 
         # Validate actions
-        validated_actions = self.validator.validate_actions(actions, state)
+        validated_actions = await self.validator.validate_actions(actions, state)
 
         # Execute turn
-        new_state = self.engine.run_turn(validated_actions)
+        new_state = await self.engine.run_turn(validated_actions)
 
         return new_state
+
+    def _run_turn(self, state: SimulationState) -> SimulationState:
+        """Run a single simulation turn.
+
+        Args:
+            state: Current simulation state
+
+        Returns:
+            New state after turn
+        """
+        # Check if we need async execution (for LLM-based components)
+        import asyncio
+        import inspect
+
+        # Check if any component has async methods
+        has_async = (
+            inspect.iscoroutinefunction(self.agents[0].decide_action) if self.agents else False
+        ) or inspect.iscoroutinefunction(self.validator.validate_actions) or inspect.iscoroutinefunction(self.engine.run_turn)
+
+        if has_async:
+            # Run async version
+            return asyncio.run(self._run_turn_async(state))
+        else:
+            # Run sync version (legacy)
+            # Distribute state to agents
+            for agent in self.agents:
+                agent.receive_state(state)
+
+            # Collect actions from agents
+            actions: List[Action] = []
+            for agent in self.agents:
+                action = agent.decide_action(state)
+                actions.append(action)
+
+            # Validate actions
+            validated_actions = self.validator.validate_actions(actions, state)
+
+            # Execute turn
+            new_state = self.engine.run_turn(validated_actions)
+
+            return new_state
 
     def _collect_stats(self) -> Dict[str, Any]:
         """Collect simulation statistics.
