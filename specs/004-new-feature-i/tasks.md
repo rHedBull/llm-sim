@@ -150,7 +150,7 @@ class LLMConfig(BaseModel):
 
 ## Phase 3.3: Contract Tests (TDD - Tests MUST FAIL before implementation)
 
-### T009: ✅ [P] Write LLMClient contract test
+### T009: ✅ [X] Write LLMClient contract test
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_client_contract.py`
 **Tests to implement** (from contracts/llm_client_contract.md):
 1. `test_llm_client_successful_first_attempt` - mock successful response, verify PolicyDecision returned, 1 call
@@ -166,7 +166,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T010: ✅ [P] Write LLMAgent abstract contract test
+### T010: ✅ [X] Write LLMAgent abstract contract test
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_agent_contract.py`
 **Tests to implement** (from contracts/agent_interface_contract.md):
 1. `test_llm_agent_calls_abstract_methods` - verify `_construct_prompt` and `_validate_decision` are abstract
@@ -180,7 +180,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T011: ✅ [P] Write EconLLMAgent contract test
+### T011: ✅ [X] Write EconLLMAgent contract test
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_econ_llm_agent_contract.py`
 **Tests to implement**:
 1. `test_econ_agent_generates_policy_with_llm` - mock LLM returning PolicyDecision, verify Action created
@@ -192,7 +192,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T012: ✅ [P] Write LLMValidator abstract contract test
+### T012: ✅ [X] Write LLMValidator abstract contract test
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_validator_contract.py`
 **Tests to implement** (from contracts/validator_interface_contract.md):
 1. `test_llm_validator_calls_abstract_methods` - verify `_construct_validation_prompt` and `_get_domain_description` are abstract
@@ -204,7 +204,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T013: ✅ [P] Write EconLLMValidator contract test
+### T013: ✅ [X] Write EconLLMValidator contract test
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_econ_llm_validator_contract.py`
 **Tests to implement**:
 1. `test_econ_validator_accepts_economic_action` - mock LLM returning is_valid=True, verify action marked validated
@@ -216,7 +216,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T014: ✅ [P] Write LLMEngine abstract contract test
+### T014: ✅ [X] Write LLMEngine abstract contract test
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_engine_contract.py`
 **Tests to implement** (from contracts/engine_interface_contract.md):
 1. `test_llm_engine_calls_abstract_methods` - verify `_construct_state_update_prompt` and `_apply_state_update` are abstract
@@ -228,7 +228,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T015: ✅ [P] Write EconLLMEngine contract test
+### T015: ✅ [X] Write EconLLMEngine contract test
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_econ_llm_engine_contract.py`
 **Tests to implement**:
 1. `test_econ_engine_processes_validated_action` - mock LLM returning new interest rate, verify state updated
@@ -242,7 +242,7 @@ class LLMConfig(BaseModel):
 
 ## Phase 3.4: Core Implementation - Tier 1 (LLM Infrastructure)
 
-### T016: ✅ Implement LLMClient with retry logic
+### T016: ✅ [X] Implement LLMClient with retry logic
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/utils/llm_client.py`
 **Class**: `LLMClient`
 **Methods**:
@@ -266,7 +266,7 @@ class LLMConfig(BaseModel):
 
 ## Phase 3.5: Core Implementation - Tier 2 (Abstract LLM Classes)
 
-### T017: ✅ Implement LLMAgent abstract base class
+### T017: ✅ [X] Implement LLMAgent abstract base class
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/agents/llm_agent.py`
 **Class**: `LLMAgent(Agent)` - inherits from existing Agent ABC
 **Abstract methods**:
@@ -289,7 +289,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T018: ✅ Implement LLMValidator abstract base class
+### T018: ✅ [X] Implement LLMValidator abstract base class
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/validators/llm_validator.py`
 **Class**: `LLMValidator(Validator)` - inherits from existing Validator ABC
 **Abstract methods**:
@@ -315,7 +315,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T019: ✅ Implement LLMEngine abstract base class
+### T019: ✅ [X] Implement LLMEngine abstract base class
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/engines/llm_engine.py`
 **Class**: `LLMEngine(Engine)` - inherits from existing Engine ABC
 **Abstract methods**:
@@ -345,7 +345,7 @@ class LLMConfig(BaseModel):
 
 ## Phase 3.6: Core Implementation - Tier 3 (Concrete Economic Classes)
 
-### T020: ✅ Implement EconLLMAgent concrete class
+### T020: ✅ [X] Implement EconLLMAgent concrete class
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/agents/econ_llm_agent.py`
 **Class**: `EconLLMAgent(LLMAgent)` - inherits from LLMAgent
 **Implement abstract methods**:
@@ -387,7 +387,7 @@ return SYSTEM_MSG + "\n\n" + USER_MSG
 
 ---
 
-### T021: ✅ Implement EconLLMValidator concrete class
+### T021: ✅ [X] Implement EconLLMValidator concrete class
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/validators/econ_llm_validator.py`
 **Class**: `EconLLMValidator(LLMValidator)` - inherits from LLMValidator
 **Implement abstract methods**:
@@ -432,7 +432,7 @@ return SYSTEM_MSG + "\n\n" + USER_MSG
 
 ---
 
-### T022: ✅ Implement EconLLMEngine concrete class
+### T022: ✅ [X] Implement EconLLMEngine concrete class
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/engines/econ_llm_engine.py`
 **Class**: `EconLLMEngine(LLMEngine)` - inherits from LLMEngine
 **Implement abstract methods**:
@@ -493,7 +493,7 @@ return SimulationState(
 
 ## Phase 3.7: Integration - Orchestrator Updates
 
-### T023: ✅ Update Orchestrator to support LLM component types
+### T023: ✅ [X] Update Orchestrator to support LLM component types
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/src/llm_sim/orchestrator.py`
 **Changes needed**:
 
@@ -653,7 +653,7 @@ logger.debug(
 
 ---
 
-### T029: [P] Create example LLM simulation config YAML
+### T029: ✅ [X] Create example LLM simulation config YAML
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/config_llm_example.yaml`
 **Content** (from ARCHITECTURE.md):
 ```yaml
