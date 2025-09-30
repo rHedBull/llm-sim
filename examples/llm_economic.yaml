@@ -4,7 +4,7 @@
 # PREREQUISITES:
 # 1. Install Ollama: https://ollama.com/download
 # 2. Start Ollama server: ollama serve
-# 3. Pull model: ollama pull gemma:3
+# 3. Pull model: ollama pull gemma3:1b
 # 4. Run simulation: python main.py examples/llm_economic.yaml
 
 simulation:
@@ -15,9 +15,9 @@ simulation:
     max_value: null
 
 # LLM Configuration
-# Requires: ollama server running with gemma:3 model
+# Requires: ollama server running with gemma3:1b model
 llm:
-  model: "gemma:3"
+  model: "gemma3:1b"
   host: "http://localhost:11434"
   timeout: 60.0
   max_retries: 1

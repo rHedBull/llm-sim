@@ -12,7 +12,7 @@ uv pip install -e ".[dev]"
 python main.py examples/quick_test.yaml
 
 # Run LLM-based simulation (requires Ollama)
-ollama pull gemma:3
+ollama pull gemma3:1b
 python main.py config_llm_example.yaml
 ```
 

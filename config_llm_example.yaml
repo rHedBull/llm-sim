@@ -6,7 +6,7 @@ simulation:
     max_value: null
 
 llm:
-  model: "gemma:3"
+  model: "gemma3:1b"
   host: "http://localhost:11434"
   timeout: 60.0
   max_retries: 1

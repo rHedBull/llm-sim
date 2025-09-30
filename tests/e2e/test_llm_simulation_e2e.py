@@ -172,7 +172,7 @@ def test_llm_with_real_config_file():
 
         # Verify components are LLM-based
         assert orchestrator.config.llm is not None
-        assert orchestrator.config.llm.model == "gemma:3"
+        assert orchestrator.config.llm.model == "gemma3:1b"
         assert orchestrator.config.engine.type == "econ_llm_engine"
         assert orchestrator.config.validator.type == "econ_llm_validator"
         assert orchestrator.config.agents[0].type == "econ_llm_agent"
