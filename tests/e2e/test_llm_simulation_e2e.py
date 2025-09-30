@@ -24,26 +24,12 @@ def test_llm_simulation_complete_flow_mocked():
         # Each turn: 2 agents × (1 agent call + 1 validator call) + 2 engine calls = 6 calls
 
         mock_call.side_effect = [
-            # Turn 1
+            # Turn 1 - Collect all agent decisions first
             # USA Agent
             PolicyDecision(
                 action="Lower interest rates by 0.25%",
                 reasoning="Economic indicators suggest need for stimulus",
                 confidence=0.85
-            ),
-            # USA Validator
-            ValidationResult(
-                is_valid=True,
-                reasoning="Interest rate policy is core economic domain",
-                confidence=0.95,
-                action_evaluated="Lower interest rates by 0.25%"
-            ),
-            # USA Engine
-            StateUpdateDecision(
-                new_interest_rate=2.25,
-                reasoning="Lowered rate from 2.5% to 2.25% based on policy",
-                confidence=0.90,
-                action_applied="Lower interest rates by 0.25%"
             ),
             # EU Agent
             PolicyDecision(
@@ -51,12 +37,28 @@ def test_llm_simulation_complete_flow_mocked():
                 reasoning="Economic stability requires no changes",
                 confidence=0.80
             ),
+            # Then validate all actions
+            # USA Validator
+            ValidationResult(
+                is_valid=True,
+                reasoning="Interest rate policy is core economic domain",
+                confidence=0.95,
+                action_evaluated="Lower interest rates by 0.25%"
+            ),
             # EU Validator
             ValidationResult(
                 is_valid=True,
                 reasoning="Interest rate maintenance is economic policy",
                 confidence=0.95,
                 action_evaluated="Maintain current interest rates"
+            ),
+            # Finally, engine processes validated actions
+            # USA Engine
+            StateUpdateDecision(
+                new_interest_rate=2.25,
+                reasoning="Lowered rate from 2.5% to 2.25% based on policy",
+                confidence=0.90,
+                action_applied="Lower interest rates by 0.25%"
             ),
             # EU Engine
             StateUpdateDecision(
@@ -104,7 +106,7 @@ def test_llm_simulation_complete_flow_mocked():
         # Verify stats
         stats = results["stats"]
         assert stats["total_turns"] == 1
-        assert stats["simulation_name"] == "Economic LLM Simulation"
+        assert stats["final_turn"] == 1
 
 
 def test_llm_validation_rejection_flow_mocked():
@@ -112,24 +114,26 @@ def test_llm_validation_rejection_flow_mocked():
 
     with patch("llm_sim.utils.llm_client.LLMClient.call_with_retry", new_callable=AsyncMock) as mock_call:
         mock_call.side_effect = [
+            # Collect all agent decisions first
             # USA Agent - proposes non-economic action
             PolicyDecision(
                 action="Deploy military forces",
                 reasoning="Security response",
                 confidence=0.75
             ),
+            # EU Agent - proposes economic action
+            PolicyDecision(
+                action="Lower interest rates by 0.5%",
+                reasoning="Stimulate growth",
+                confidence=0.85
+            ),
+            # Then validate all actions
             # USA Validator - rejects
             ValidationResult(
                 is_valid=False,
                 reasoning="Military action is not economic policy",
                 confidence=0.98,
                 action_evaluated="Deploy military forces"
-            ),
-            # EU Agent - proposes economic action
-            PolicyDecision(
-                action="Lower interest rates by 0.5%",
-                reasoning="Stimulate growth",
-                confidence=0.85
             ),
             # EU Validator - accepts
             ValidationResult(
@@ -138,7 +142,7 @@ def test_llm_validation_rejection_flow_mocked():
                 confidence=0.95,
                 action_evaluated="Lower interest rates by 0.5%"
             ),
-            # EU Engine (USA was skipped)
+            # Engine only processes EU (USA was rejected)
             StateUpdateDecision(
                 new_interest_rate=2.0,
                 reasoning="Lowered rate from 2.5% to 2.0%",

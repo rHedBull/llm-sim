@@ -146,14 +146,17 @@ class LLMEngine(BaseEngine):
                 retry_count=0  # TODO: Track actual retry count
             )
             reasoning_chains.append(chain)
-            
+
             # Step 5: Apply state update
             working_state = self._apply_state_update(decision, working_state)
-        
-        # Attach reasoning chains to new state
+
+        # Attach reasoning chains and increment turn once for the entire turn
         new_state = working_state.model_copy(
-            update={"reasoning_chains": reasoning_chains}
+            update={
+                "reasoning_chains": reasoning_chains,
+                "turn": working_state.turn + 1  # Increment once per simulation turn
+            }
         )
-        
+
         self.current_state = new_state
         return new_state

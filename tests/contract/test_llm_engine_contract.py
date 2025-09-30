@@ -41,9 +41,9 @@ async def test_llm_engine_run_turn_workflow():
             return f"Update state for: {action.action_string}"
 
         def _apply_state_update(self, decision, state):
-            # Simple update: just increment turn
+            # Simple update: return state unchanged (turn incremented in run_turn)
             return SimulationState(
-                turn=state.turn + 1,
+                turn=state.turn,  # Don't increment here - run_turn does it
                 agents=state.agents,
                 global_state=state.global_state,
                 reasoning_chains=[]

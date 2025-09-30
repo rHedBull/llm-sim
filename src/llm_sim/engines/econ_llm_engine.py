@@ -121,15 +121,16 @@ Calculate the new interest rate."""
             state: Current simulation state
 
         Returns:
-            New state with updated interest rate
+            New state with updated interest rate (turn NOT incremented here)
         """
         # Update only interest_rate (economic domain)
+        # NOTE: turn is NOT incremented here - it's incremented once per turn in run_turn
         new_global = state.global_state.model_copy(
             update={"interest_rate": decision.new_interest_rate}
         )
 
         return SimulationState(
-            turn=state.turn + 1,
+            turn=state.turn,  # Keep same turn - incremented once in run_turn
             agents=state.agents,
             global_state=new_global,
             reasoning_chains=[]  # Will be populated by run_turn
