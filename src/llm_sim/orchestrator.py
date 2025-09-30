@@ -146,6 +146,23 @@ class SimulationOrchestrator:
                 - history: List of all states
                 - stats: Simulation statistics
         """
+        import asyncio
+        import inspect
+
+        # Check if any component has async methods
+        has_async = (
+            inspect.iscoroutinefunction(self.agents[0].decide_action) if self.agents else False
+        ) or inspect.iscoroutinefunction(self.validator.validate_actions) or inspect.iscoroutinefunction(self.engine.run_turn)
+
+        if has_async:
+            # Run entire simulation asynchronously
+            return asyncio.run(self._run_async())
+        else:
+            # Run sync version
+            return self._run_sync()
+
+    def _run_sync(self) -> Dict[str, Any]:
+        """Run simulation synchronously (for non-LLM components)."""
         logger.info(
             "simulation_starting",
             name=self.config.simulation.name,
@@ -159,7 +176,43 @@ class SimulationOrchestrator:
 
         # Run simulation turns
         while not self.engine.check_termination(state):
-            state = self._run_turn(state)
+            state = self._run_turn_sync(state)
+            self.history.append(state)
+
+            logger.info(
+                "turn_completed",
+                turn=state.turn,
+                total_value=state.global_state.total_economic_value,
+            )
+
+        # Collect final statistics
+        stats = self._collect_stats()
+
+        logger.info(
+            "simulation_completed",
+            final_turn=state.turn,
+            final_value=state.global_state.total_economic_value,
+            total_turns=len(self.history) - 1,  # Exclude initial state
+        )
+
+        return {"final_state": state, "history": self.history, "stats": stats}
+
+    async def _run_async(self) -> Dict[str, Any]:
+        """Run simulation asynchronously (for LLM components)."""
+        logger.info(
+            "simulation_starting",
+            name=self.config.simulation.name,
+            max_turns=self.config.simulation.max_turns,
+            num_agents=len(self.agents),
+        )
+
+        # Initialize state
+        state = self.engine.initialize_state()
+        self.history.append(state)
+
+        # Run simulation turns
+        while not self.engine.check_termination(state):
+            state = await self._run_turn_async(state)
             self.history.append(state)
 
             logger.info(
@@ -207,46 +260,32 @@ class SimulationOrchestrator:
 
         return new_state
 
-    def _run_turn(self, state: SimulationState) -> SimulationState:
-        """Run a single simulation turn.
+    def _run_turn_sync(self, state: SimulationState) -> SimulationState:
+        """Run a single simulation turn synchronously (for non-LLM components).
 
         Args:
             state: Current simulation state
 
         Returns:
-            New state after turn
+            New state after turn execution
         """
-        # Check if we need async execution (for LLM-based components)
-        import asyncio
-        import inspect
+        # Distribute state to agents
+        for agent in self.agents:
+            agent.receive_state(state)
 
-        # Check if any component has async methods
-        has_async = (
-            inspect.iscoroutinefunction(self.agents[0].decide_action) if self.agents else False
-        ) or inspect.iscoroutinefunction(self.validator.validate_actions) or inspect.iscoroutinefunction(self.engine.run_turn)
+        # Collect actions from agents
+        actions: List[Action] = []
+        for agent in self.agents:
+            action = agent.decide_action(state)
+            actions.append(action)
 
-        if has_async:
-            # Run async version
-            return asyncio.run(self._run_turn_async(state))
-        else:
-            # Run sync version (legacy)
-            # Distribute state to agents
-            for agent in self.agents:
-                agent.receive_state(state)
+        # Validate actions
+        validated_actions = self.validator.validate_actions(actions, state)
 
-            # Collect actions from agents
-            actions: List[Action] = []
-            for agent in self.agents:
-                action = agent.decide_action(state)
-                actions.append(action)
+        # Execute turn
+        new_state = self.engine.run_turn(validated_actions)
 
-            # Validate actions
-            validated_actions = self.validator.validate_actions(actions, state)
-
-            # Execute turn
-            new_state = self.engine.run_turn(validated_actions)
-
-            return new_state
+        return new_state
 
     def _collect_stats(self) -> Dict[str, Any]:
         """Collect simulation statistics.
