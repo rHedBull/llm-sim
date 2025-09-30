@@ -150,7 +150,7 @@ class LLMConfig(BaseModel):
 
 ## Phase 3.3: Contract Tests (TDD - Tests MUST FAIL before implementation)
 
-### T009: ✅ [X] Write LLMClient contract test
+### T009: ✅ [X] Write LLMClient contract test ✓ DONE
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_client_contract.py`
 **Tests to implement** (from contracts/llm_client_contract.md):
 1. `test_llm_client_successful_first_attempt` - mock successful response, verify PolicyDecision returned, 1 call
@@ -166,7 +166,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T010: ✅ [X] Write LLMAgent abstract contract test
+### T010: ✅ [X] Write LLMAgent abstract contract test ✓ DONE
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_agent_contract.py`
 **Tests to implement** (from contracts/agent_interface_contract.md):
 1. `test_llm_agent_calls_abstract_methods` - verify `_construct_prompt` and `_validate_decision` are abstract
@@ -180,7 +180,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T011: ✅ [X] Write EconLLMAgent contract test
+### T011: ✅ [X] Write EconLLMAgent contract test ✓ DONE
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_econ_llm_agent_contract.py`
 **Tests to implement**:
 1. `test_econ_agent_generates_policy_with_llm` - mock LLM returning PolicyDecision, verify Action created
@@ -192,7 +192,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T012: ✅ [X] Write LLMValidator abstract contract test
+### T012: ✅ [X] Write LLMValidator abstract contract test ✓ DONE
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_validator_contract.py`
 **Tests to implement** (from contracts/validator_interface_contract.md):
 1. `test_llm_validator_calls_abstract_methods` - verify `_construct_validation_prompt` and `_get_domain_description` are abstract
@@ -204,7 +204,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T013: ✅ [X] Write EconLLMValidator contract test
+### T013: ✅ [X] Write EconLLMValidator contract test ✓ DONE
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_econ_llm_validator_contract.py`
 **Tests to implement**:
 1. `test_econ_validator_accepts_economic_action` - mock LLM returning is_valid=True, verify action marked validated
@@ -216,7 +216,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T014: ✅ [X] Write LLMEngine abstract contract test
+### T014: ✅ [X] Write LLMEngine abstract contract test ✓ DONE
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_llm_engine_contract.py`
 **Tests to implement** (from contracts/engine_interface_contract.md):
 1. `test_llm_engine_calls_abstract_methods` - verify `_construct_state_update_prompt` and `_apply_state_update` are abstract
@@ -228,7 +228,7 @@ class LLMConfig(BaseModel):
 
 ---
 
-### T015: ✅ [X] Write EconLLMEngine contract test
+### T015: ✅ [X] Write EconLLMEngine contract test ✓ DONE
 **File**: `/home/hendrik/coding/llm_sim/llm_sim/tests/contract/test_econ_llm_engine_contract.py`
 **Tests to implement**:
 1. `test_econ_engine_processes_validated_action` - mock LLM returning new interest rate, verify state updated

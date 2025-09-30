@@ -31,6 +31,9 @@ async def test_econ_engine_processes_validated_action():
         confidence=0.88,
         action_applied="Lower interest rates"
     )
+    # Add config attribute with model field for LLMReasoningChain creation
+    mock_client.config = MagicMock()
+    mock_client.config.model = "gemma:3"
 
     mock_config = MagicMock()
     engine = EconLLMEngine(config=mock_config, llm_client=mock_client)
@@ -143,6 +146,9 @@ async def test_econ_engine_sequential_aggregation():
             action_applied="action2"
         )
     ]
+    # Add config attribute with model field for LLMReasoningChain creation
+    mock_client.config = MagicMock()
+    mock_client.config.model = "gemma:3"
 
     mock_config = MagicMock()
     engine = EconLLMEngine(config=mock_config, llm_client=mock_client)

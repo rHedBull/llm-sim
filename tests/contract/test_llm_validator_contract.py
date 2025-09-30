@@ -155,7 +155,7 @@ async def test_llm_validator_returns_same_length_list():
     mock_client = AsyncMock()
     mock_client.call_with_retry.return_value = ValidationResult(
         is_valid=True,
-        reasoning="valid",
+        reasoning="This action is valid for the test domain",
         confidence=0.8,
         action_evaluated="action"
     )

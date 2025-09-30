@@ -56,6 +56,9 @@ async def test_llm_engine_run_turn_workflow():
         confidence=0.85,
         action_applied="Lower rates"
     )
+    # Add config attribute with model field for LLMReasoningChain creation
+    mock_client.config = MagicMock()
+    mock_client.config.model = "gemma:3"
 
     mock_config = MagicMock()
     engine = TestLLMEngine(config=mock_config, llm_client=mock_client)
@@ -157,6 +160,9 @@ async def test_llm_engine_attaches_reasoning_chains():
         confidence=0.85,
         action_applied="action"
     )
+    # Add config attribute with model field for LLMReasoningChain creation
+    mock_client.config = MagicMock()
+    mock_client.config.model = "gemma:3"
 
     mock_config = MagicMock()
     engine = TestLLMEngine(config=mock_config, llm_client=mock_client)
