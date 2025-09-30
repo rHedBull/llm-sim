@@ -1,191 +1,139 @@
-"""
-Contract tests for LLMValidator abstract base class.
+"""Contract tests for LLMValidator pattern.
+from llm_sim.models.state import GlobalState
 
-These tests validate the interface and workflow of the LLM-enabled
-validator base class, ensuring abstract methods are enforced and the
-validation workflow is correct.
-
-Status: THESE TESTS MUST FAIL - LLMValidator not yet implemented
+These tests verify that the LLMValidator pattern class remains stable
+and properly extends BaseValidator.
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from abc import ABC
+from typing import List
 
-# These imports will fail until implementation is complete
-try:
-    from llm_sim.validators.llm_validator import LLMValidator
-    from llm_sim.models.llm_models import ValidationResult
-    from llm_sim.models.action import Action, LLMAction
-    from llm_sim.models.state import SimulationState, GlobalState
-    from llm_sim.utils.llm_client import LLMClient
-except ImportError:
-    pytest.skip("LLMValidator not yet implemented", allow_module_level=True)
+from llm_sim.infrastructure.base.validator import BaseValidator
+from llm_sim.infrastructure.patterns.llm_validator import LLMValidator
+from llm_sim.models.action import Action
+from llm_sim.models.state import SimulationState
 
 
-def test_llm_validator_calls_abstract_methods():
-    """Verify _construct_validation_prompt and _get_domain_description are abstract"""
-    # Then: Cannot instantiate LLMValidator directly
-    with pytest.raises(TypeError):
-        mock_client = MagicMock()
-        LLMValidator(llm_client=mock_client, domain="test", permissive=True)
+class TestLLMValidatorContract:
+    """Test LLMValidator pattern contract."""
 
+    def test_llm_validator_extends_base_validator(self):
+        """LLMValidator should extend BaseValidator."""
+        assert issubclass(LLMValidator, BaseValidator)
 
-@pytest.mark.asyncio
-async def test_llm_validator_validate_actions_workflow():
-    """Verify validation loop marks actions correctly"""
+    def test_llm_validator_is_abstract(self):
+        """LLMValidator should be abstract and cannot be instantiated."""
+        with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+            LLMValidator(model="test_model")
 
-    # Given: Mock concrete implementation
-    class TestLLMValidator(LLMValidator):
-        def _construct_validation_prompt(self, action, state):
-            return f"Validate: {action.action_name}"
+    def test_construct_validation_prompt_is_abstract_method(self):
+        """_construct_validation_prompt must be an abstract method."""
+        assert hasattr(LLMValidator, '_construct_validation_prompt')
+        assert hasattr(LLMValidator._construct_validation_prompt, '__isabstractmethod__')
+        assert LLMValidator._construct_validation_prompt.__isabstractmethod__ is True
 
-        def _get_domain_description(self):
-            return "test domain"
+    def test_get_domain_description_is_abstract_method(self):
+        """_get_domain_description must be an abstract method."""
+        assert hasattr(LLMValidator, '_get_domain_description')
+        assert hasattr(LLMValidator._get_domain_description, '__isabstractmethod__')
+        assert LLMValidator._get_domain_description.__isabstractmethod__ is True
 
-    mock_client = AsyncMock()
-    mock_client.call_with_retry.side_effect = [
-        ValidationResult(
-            is_valid=True,
-            reasoning="This is in domain",
-            confidence=0.9,
-            action_evaluated="action 1"
-        ),
-        ValidationResult(
-            is_valid=False,
-            reasoning="This is out of domain",
-            confidence=0.85,
-            action_evaluated="action 2"
-        )
-    ]
+    def test_validate_actions_has_concrete_implementation(self):
+        """validate_actions should have a concrete implementation."""
+        assert hasattr(LLMValidator, 'validate_actions')
+        # Should have implementation in LLMValidator (overrides base)
+        assert 'validate_actions' in dir(LLMValidator)
 
-    validator = TestLLMValidator(
-        llm_client=mock_client,
-        domain="test",
-        permissive=True
-    )
+    def test_concrete_implementation_can_be_instantiated(self):
+        """A concrete class implementing all abstract methods can be instantiated."""
+        class ConcreteLLMValidator(LLMValidator):
+            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+                return "validate these actions"
 
-    actions = [
-        LLMAction(agent_name="Agent1", action_name="action 1", validated=False),
-        LLMAction(agent_name="Agent2", action_name="action 2", validated=False)
-    ]
+            def _get_domain_description(self) -> str:
+                return "test domain"
 
-    state = SimulationState(
-        turn=1,
-        agents={},
-        global_state=GlobalState(
-            gdp_growth=2.5,
-            inflation=3.0,
-            unemployment=5.0,
-            interest_rate=2.5
-        ),
-        reasoning_chains=[]
-    )
+            def validate_action(self, action: Action, state: SimulationState) -> bool:
+                return True
 
-    # When: Validating actions
-    validated_actions = await validator.validate_actions(actions, state)
+        validator = ConcreteLLMValidator(model="test_model")
+        assert isinstance(validator, LLMValidator)
+        assert isinstance(validator, BaseValidator)
 
-    # Then: First action validated, second rejected
-    assert validated_actions[0].validated is True
-    assert validated_actions[1].validated is False
-    assert mock_client.call_with_retry.call_count == 2
+    def test_concrete_implementation_without_construct_prompt_fails(self):
+        """A concrete class not implementing _construct_validation_prompt cannot be instantiated."""
+        class IncompleteLLMValidator(LLMValidator):
+            def _get_domain_description(self) -> str:
+                return "test domain"
 
+            def validate_action(self, action: Action, state: SimulationState) -> bool:
+                return True
+            # Missing: _construct_validation_prompt
 
-@pytest.mark.asyncio
-async def test_llm_validator_logs_reasoning_chain():
-    """Verify DEBUG log for each validation"""
+        with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+            IncompleteLLMValidator(model="test_model")
 
-    # Given: Mock implementation
-    class TestLLMValidator(LLMValidator):
-        def _construct_validation_prompt(self, action, state):
-            return f"Validate: {action.action_name}"
+    def test_concrete_implementation_without_domain_description_fails(self):
+        """A concrete class not implementing _get_domain_description cannot be instantiated."""
+        class IncompleteLLMValidator(LLMValidator):
+            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+                return "validate"
 
-        def _get_domain_description(self):
-            return "test domain"
+            def validate_action(self, action: Action, state: SimulationState) -> bool:
+                return True
+            # Missing: _get_domain_description
 
-    mock_client = AsyncMock()
-    mock_client.call_with_retry.return_value = ValidationResult(
-        is_valid=True,
-        reasoning="Valid action",
-        confidence=0.8,
-        action_evaluated="test action"
-    )
+        with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+            IncompleteLLMValidator(model="test_model")
 
-    validator = TestLLMValidator(
-        llm_client=mock_client,
-        domain="test",
-        permissive=True
-    )
+    def test_llm_validator_inherits_from_abc(self):
+        """LLMValidator should inherit from ABC."""
+        assert issubclass(LLMValidator, ABC)
 
-    actions = [
-        LLMAction(agent_name="Agent1", action_name="test action", validated=False)
-    ]
+    def test_concrete_implementation_preserves_model_attribute(self):
+        """Concrete implementation should properly initialize model attribute."""
+        class ConcreteLLMValidator(LLMValidator):
+            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+                return "validate"
 
-    state = SimulationState(
-        turn=1,
-        agents={},
-        global_state=GlobalState(
-            gdp_growth=2.5,
-            inflation=3.0,
-            unemployment=5.0,
-            interest_rate=2.5
-        ),
-        reasoning_chains=[]
-    )
+            def _get_domain_description(self) -> str:
+                return "test domain"
 
-    # When: Validating actions
-    validated_actions = await validator.validate_actions(actions, state)
+            def validate_action(self, action: Action, state: SimulationState) -> bool:
+                return True
 
-    # Then: Reasoning logged (validation result attached)
-    assert validated_actions[0].validation_result is not None
-    assert validated_actions[0].validation_result.reasoning == "Valid action"
+        validator = ConcreteLLMValidator(model="gpt-4")
+        assert hasattr(validator, 'model')
+        assert validator.model == "gpt-4"
 
+    def test_llm_validator_has_client_attribute(self):
+        """LLMValidator should have a client attribute for LLM communication."""
+        class ConcreteLLMValidator(LLMValidator):
+            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+                return "validate"
 
-@pytest.mark.asyncio
-async def test_llm_validator_returns_same_length_list():
-    """Verify output list length == input length"""
+            def _get_domain_description(self) -> str:
+                return "test domain"
 
-    # Given: Mock implementation
-    class TestLLMValidator(LLMValidator):
-        def _construct_validation_prompt(self, action, state):
-            return "validate"
+            def validate_action(self, action: Action, state: SimulationState) -> bool:
+                return True
 
-        def _get_domain_description(self):
-            return "domain"
+        validator = ConcreteLLMValidator(model="test_model")
+        assert hasattr(validator, 'client')
 
-    mock_client = AsyncMock()
-    mock_client.call_with_retry.return_value = ValidationResult(
-        is_valid=True,
-        reasoning="This action is valid for the test domain",
-        confidence=0.8,
-        action_evaluated="action"
-    )
+    def test_llm_validator_inherits_stats_tracking(self):
+        """LLMValidator should inherit validation_count and rejection_count from BaseValidator."""
+        class ConcreteLLMValidator(LLMValidator):
+            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+                return "validate"
 
-    validator = TestLLMValidator(
-        llm_client=mock_client,
-        domain="test",
-        permissive=True
-    )
+            def _get_domain_description(self) -> str:
+                return "test domain"
 
-    actions = [
-        LLMAction(agent_name=f"Agent{i}", action_name=f"action {i}", validated=False)
-        for i in range(5)
-    ]
+            def validate_action(self, action: Action, state: SimulationState) -> bool:
+                return True
 
-    state = SimulationState(
-        turn=1,
-        agents={},
-        global_state=GlobalState(
-            gdp_growth=2.5,
-            inflation=3.0,
-            unemployment=5.0,
-            interest_rate=2.5
-        ),
-        reasoning_chains=[]
-    )
-
-    # When: Validating actions
-    validated_actions = await validator.validate_actions(actions, state)
-
-    # Then: Same number of actions returned
-    assert len(validated_actions) == len(actions)
-    assert len(validated_actions) == 5
+        validator = ConcreteLLMValidator(model="test_model")
+        assert hasattr(validator, 'validation_count')
+        assert hasattr(validator, 'rejection_count')

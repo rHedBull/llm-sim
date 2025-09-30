@@ -1,20 +1,16 @@
 """Simulation orchestrator that coordinates all components."""
 
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
 
-from llm_sim.agents.nation import NationAgent
-from llm_sim.agents.econ_llm_agent import EconLLMAgent
-from llm_sim.engines.economic import EconomicEngine
-from llm_sim.engines.econ_llm_engine import EconLLMEngine
+from llm_sim.discovery import ComponentDiscovery
 from llm_sim.models.action import Action
 from llm_sim.models.config import SimulationConfig
 from llm_sim.models.state import SimulationState
 from llm_sim.utils.llm_client import LLMClient
 from llm_sim.utils.logging import configure_logging, get_logger
-from llm_sim.validators.always_valid import AlwaysValidValidator
-from llm_sim.validators.econ_llm_validator import EconLLMValidator
 
 logger = get_logger(__name__)
 
@@ -33,6 +29,9 @@ class SimulationOrchestrator:
         """
         self.config = config
         self._configure_logging()
+
+        # Initialize discovery mechanism
+        self.discovery = ComponentDiscovery(Path(__file__).parent)
 
         # Initialize components
         self.engine = self._create_engine()
@@ -63,26 +62,31 @@ class SimulationOrchestrator:
         configure_logging(level=self.config.logging.level, format=self.config.logging.format)
 
     def _create_engine(self):
-        """Create engine based on configuration.
+        """Create engine based on configuration using discovery mechanism.
 
         Returns:
             Configured engine instance
         """
-        if self.config.engine.type == "economic":
-            return EconomicEngine(self.config)
-        elif self.config.engine.type == "econ_llm_engine":
-            # NEW: LLM-based economic engine
-            if not self.config.llm:
-                raise ValueError("LLM config required for econ_llm_engine")
-            llm_client = LLMClient(config=self.config.llm)
-            return EconLLMEngine(config=self.config, llm_client=llm_client)
-        else:
-            raise ValueError(f"Unknown engine type: {self.config.engine.type}")
+        # Use discovery to load engine class
+        EngineClass = self.discovery.load_engine(self.config.engine.type)
+
+        # Check if engine requires LLM client (for LLM-based engines)
+        try:
+            # Try with LLM client first
+            if self.config.llm:
+                llm_client = LLMClient(config=self.config.llm)
+                return EngineClass(config=self.config, llm_client=llm_client)
+        except TypeError:
+            # If TypeError, engine doesn't take llm_client parameter
+            pass
+
+        # Fall back to basic initialization
+        return EngineClass(config=self.config)
 
     def _create_agents(
         self, agent_strategies: Optional[Dict[str, str]] = None
     ) -> List:
-        """Create agents based on configuration.
+        """Create agents based on configuration using discovery mechanism.
 
         Args:
             agent_strategies: Optional mapping of agent names to strategies
@@ -98,44 +102,58 @@ class SimulationOrchestrator:
             llm_client = LLMClient(config=self.config.llm)
 
         for agent_config in self.config.agents:
-            if agent_config.type == "nation":
-                strategy = "grow"  # Default
-                if agent_strategies and agent_config.name in agent_strategies:
-                    strategy = agent_strategies[agent_config.name]
+            # Use discovery to load agent class
+            AgentClass = self.discovery.load_agent(agent_config.type)
 
-                agent = NationAgent(name=agent_config.name, strategy=strategy)
-                agents.append(agent)
-            elif agent_config.type == "econ_llm_agent":
-                # NEW: LLM-based economic agent
-                if not llm_client:
-                    raise ValueError("LLM config required for econ_llm_agent")
-                agent = EconLLMAgent(name=agent_config.name, llm_client=llm_client)
-                agents.append(agent)
-            else:
-                raise ValueError(f"Unknown agent type: {agent_config.type}")
+            # Build initialization parameters
+            init_params = {"name": agent_config.name}
+
+            # Add strategy if available (for agents that support it)
+            if agent_strategies and agent_config.name in agent_strategies:
+                init_params["strategy"] = agent_strategies[agent_config.name]
+            elif hasattr(agent_config, "strategy"):
+                init_params["strategy"] = agent_config.strategy
+
+            # Add LLM client if available (for LLM-based agents)
+            if llm_client:
+                try:
+                    agent = AgentClass(**init_params, llm_client=llm_client)
+                    agents.append(agent)
+                    continue
+                except TypeError:
+                    # Agent doesn't take llm_client parameter
+                    pass
+
+            # Fall back to basic initialization
+            agent = AgentClass(**init_params)
+            agents.append(agent)
 
         return agents
 
     def _create_validator(self):
-        """Create validator based on configuration.
+        """Create validator based on configuration using discovery mechanism.
 
         Returns:
             Configured validator instance
         """
-        if self.config.validator.type == "always_valid":
-            return AlwaysValidValidator()
-        elif self.config.validator.type == "econ_llm_validator":
-            # NEW: LLM-based economic validator
-            if not self.config.llm:
-                raise ValueError("LLM config required for econ_llm_validator")
-            llm_client = LLMClient(config=self.config.llm)
-            return EconLLMValidator(
-                llm_client=llm_client,
-                domain=self.config.validator.domain or "economic",
-                permissive=self.config.validator.permissive
-            )
-        else:
-            raise ValueError(f"Unknown validator type: {self.config.validator.type}")
+        # Use discovery to load validator class
+        ValidatorClass = self.discovery.load_validator(self.config.validator.type)
+
+        # Check if validator requires LLM client (for LLM-based validators)
+        if self.config.llm:
+            try:
+                llm_client = LLMClient(config=self.config.llm)
+                return ValidatorClass(
+                    llm_client=llm_client,
+                    domain=self.config.validator.domain or "economic",
+                    permissive=self.config.validator.permissive
+                )
+            except TypeError:
+                # Validator doesn't take llm_client parameter
+                pass
+
+        # Fall back to basic initialization
+        return ValidatorClass()
 
     def run(self) -> Dict[str, Any]:
         """Run the simulation.
