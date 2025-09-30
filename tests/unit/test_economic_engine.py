@@ -1,9 +1,9 @@
 """Tests for the Economic Engine."""
 
 
-from src.llm_sim.models.state import SimulationState, AgentState, GlobalState
-from src.llm_sim.models.action import Action, ActionType
-from src.llm_sim.models.config import (
+from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.action import Action, ActionType
+from llm_sim.models.config import (
     SimulationConfig,
     SimulationSettings,
     TerminationConditions,
@@ -12,7 +12,7 @@ from src.llm_sim.models.config import (
     ValidatorConfig,
     LoggingConfig,
 )
-from src.llm_sim.engines.economic import EconomicEngine
+from llm_sim.engines.economic import EconomicEngine
 
 
 class TestEconomicEngine:

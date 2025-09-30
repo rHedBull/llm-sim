@@ -2,10 +2,10 @@
 
 from typing import Dict, List
 
-from src.llm_sim.engines.base import BaseEngine
-from src.llm_sim.models.action import Action
-from src.llm_sim.models.state import AgentState, GlobalState, SimulationState
-from src.llm_sim.utils.logging import get_logger
+from llm_sim.engines.base import BaseEngine
+from llm_sim.models.action import Action
+from llm_sim.models.state import AgentState, GlobalState, SimulationState
+from llm_sim.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

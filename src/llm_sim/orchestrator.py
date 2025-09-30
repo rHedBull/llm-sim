@@ -4,13 +4,13 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from src.llm_sim.agents.nation import NationAgent
-from src.llm_sim.engines.economic import EconomicEngine
-from src.llm_sim.models.action import Action
-from src.llm_sim.models.config import SimulationConfig
-from src.llm_sim.models.state import SimulationState
-from src.llm_sim.utils.logging import configure_logging, get_logger
-from src.llm_sim.validators.always_valid import AlwaysValidValidator
+from llm_sim.agents.nation import NationAgent
+from llm_sim.engines.economic import EconomicEngine
+from llm_sim.models.action import Action
+from llm_sim.models.config import SimulationConfig
+from llm_sim.models.state import SimulationState
+from llm_sim.utils.logging import configure_logging, get_logger
+from llm_sim.validators.always_valid import AlwaysValidValidator
 
 logger = get_logger(__name__)
 

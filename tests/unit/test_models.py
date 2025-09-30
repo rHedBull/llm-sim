@@ -5,9 +5,9 @@ from datetime import datetime
 
 from pydantic import ValidationError
 
-from src.llm_sim.models.state import SimulationState, AgentState, GlobalState
-from src.llm_sim.models.action import Action, ActionType
-from src.llm_sim.models.config import (
+from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.action import Action, ActionType
+from llm_sim.models.config import (
     SimulationConfig,
 )
 

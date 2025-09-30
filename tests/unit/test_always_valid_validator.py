@@ -2,9 +2,9 @@
 
 from datetime import datetime
 
-from src.llm_sim.models.state import SimulationState, AgentState, GlobalState
-from src.llm_sim.models.action import Action, ActionType
-from src.llm_sim.validators.always_valid import AlwaysValidValidator
+from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.action import Action, ActionType
+from llm_sim.validators.always_valid import AlwaysValidValidator
 
 
 class TestAlwaysValidValidator:

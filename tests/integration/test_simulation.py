@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.llm_sim.orchestrator import SimulationOrchestrator
-from src.llm_sim.models.config import SimulationConfig
+from llm_sim.orchestrator import SimulationOrchestrator
+from llm_sim.models.config import SimulationConfig
 
 
 class TestSimulationOrchestration:

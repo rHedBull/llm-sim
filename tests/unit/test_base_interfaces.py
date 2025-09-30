@@ -3,9 +3,9 @@
 import pytest
 from typing import List
 
-from src.llm_sim.models.state import SimulationState, AgentState, GlobalState
-from src.llm_sim.models.action import Action, ActionType
-from src.llm_sim.models.config import (
+from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.action import Action, ActionType
+from llm_sim.models.config import (
     SimulationConfig,
     SimulationSettings,
     TerminationConditions,
@@ -13,9 +13,9 @@ from src.llm_sim.models.config import (
     ValidatorConfig,
     LoggingConfig,
 )
-from src.llm_sim.engines.base import BaseEngine
-from src.llm_sim.agents.base import BaseAgent
-from src.llm_sim.validators.base import BaseValidator
+from llm_sim.engines.base import BaseEngine
+from llm_sim.agents.base import BaseAgent
+from llm_sim.validators.base import BaseValidator
 
 
 class TestBaseEngine:

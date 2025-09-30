@@ -1,9 +1,9 @@
 """Always valid validator implementation."""
 
-from src.llm_sim.models.action import Action
-from src.llm_sim.models.state import SimulationState
-from src.llm_sim.utils.logging import get_logger
-from src.llm_sim.validators.base import BaseValidator
+from llm_sim.models.action import Action
+from llm_sim.models.state import SimulationState
+from llm_sim.utils.logging import get_logger
+from llm_sim.validators.base import BaseValidator
 
 logger = get_logger(__name__)
 

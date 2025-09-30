@@ -3,13 +3,13 @@
 import pytest
 from typing import List
 
-from src.llm_sim.orchestrator import SimulationOrchestrator
-from src.llm_sim.models.config import SimulationConfig
-from src.llm_sim.models.state import SimulationState, AgentState, GlobalState
-from src.llm_sim.models.action import Action, ActionType
-from src.llm_sim.engines.economic import EconomicEngine
-from src.llm_sim.agents.nation import NationAgent
-from src.llm_sim.validators.always_valid import AlwaysValidValidator
+from llm_sim.orchestrator import SimulationOrchestrator
+from llm_sim.models.config import SimulationConfig
+from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.action import Action, ActionType
+from llm_sim.engines.economic import EconomicEngine
+from llm_sim.agents.nation import NationAgent
+from llm_sim.validators.always_valid import AlwaysValidValidator
 
 
 class TestActualImplementation:

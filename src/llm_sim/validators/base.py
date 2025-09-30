@@ -3,8 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
 
-from src.llm_sim.models.action import Action
-from src.llm_sim.models.state import SimulationState
+from llm_sim.models.action import Action
+from llm_sim.models.state import SimulationState
 
 
 class BaseValidator(ABC):

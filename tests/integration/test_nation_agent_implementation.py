@@ -2,11 +2,11 @@
 
 import pytest
 
-from src.llm_sim.agents.nation import NationAgent
-from src.llm_sim.models.state import SimulationState, AgentState, GlobalState
-from src.llm_sim.models.action import ActionType
-from src.llm_sim.orchestrator import SimulationOrchestrator
-from src.llm_sim.models.config import SimulationConfig
+from llm_sim.agents.nation import NationAgent
+from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.action import ActionType
+from llm_sim.orchestrator import SimulationOrchestrator
+from llm_sim.models.config import SimulationConfig
 
 
 class TestNationAgentImplementation:

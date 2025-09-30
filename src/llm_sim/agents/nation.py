@@ -1,9 +1,9 @@
 """Nation agent implementation."""
 
-from src.llm_sim.agents.base import BaseAgent
-from src.llm_sim.models.action import Action, ActionType
-from src.llm_sim.models.state import SimulationState
-from src.llm_sim.utils.logging import get_logger
+from llm_sim.agents.base import BaseAgent
+from llm_sim.models.action import Action, ActionType
+from llm_sim.models.state import SimulationState
+from llm_sim.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

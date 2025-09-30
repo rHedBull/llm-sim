@@ -3,9 +3,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.llm_sim.models.action import Action
-from src.llm_sim.models.config import SimulationConfig
-from src.llm_sim.models.state import SimulationState
+from llm_sim.models.action import Action
+from llm_sim.models.config import SimulationConfig
+from llm_sim.models.state import SimulationState
 
 
 class BaseEngine(ABC):
