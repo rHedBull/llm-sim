@@ -53,8 +53,11 @@ Propose ONE specific economic policy action."""
             True if action contains economic keywords
         """
         economic_keywords = [
-            'rate', 'rates', 'fiscal', 'tax', 'trade', 
-            'monetary', 'interest', 'spending', 'budget'
+            'rate', 'rates', 'fiscal', 'tax', 'trade',
+            'monetary', 'interest', 'spending', 'budget',
+            'wage', 'wages', 'infrastructure', 'investment',
+            'subsidy', 'subsidies', 'tariff', 'regulation',
+            'export', 'import', 'currency', 'credit'
         ]
 
         action_lower = decision.action.lower()

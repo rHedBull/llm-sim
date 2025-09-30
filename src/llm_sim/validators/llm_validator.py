@@ -109,7 +109,7 @@ class LLMValidator(BaseValidator):
                 duration_ms=duration_ms
             )
             
-            # Step 4: Mark action as validated or not
+            # Step 4: Mark action as validated or not and update counters
             if result.is_valid:
                 validated_action = action.model_copy(
                     update={
@@ -118,6 +118,7 @@ class LLMValidator(BaseValidator):
                         "validation_timestamp": datetime.now()
                     }
                 )
+                self.validation_count += 1
             else:
                 validated_action = action.model_copy(
                     update={
@@ -125,7 +126,8 @@ class LLMValidator(BaseValidator):
                         "validation_result": result
                     }
                 )
-            
+                self.rejection_count += 1
+
             validated_actions.append(validated_action)
         
         return validated_actions
