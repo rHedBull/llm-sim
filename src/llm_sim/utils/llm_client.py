@@ -1,240 +1,253 @@
-"""LLM Client for Ollama integration with retry logic.
+"""LLM client with retry logic for simulation components."""
 
-This module provides a robust LLM client with:
-- Automatic retry on transient failures
-- Exponential backoff with jitter
-- Structured output validation
-- Fallback JSON extraction
-"""
-
-import re
 import json
+import re
+import time
 from typing import Type, TypeVar, Optional
-from datetime import datetime
 
-import structlog
-import ollama
 import httpx
+import structlog
+from pydantic import BaseModel, ValidationError
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential_jitter,
     retry_if_exception_type,
 )
-from pydantic import BaseModel, ValidationError
 
-from llm_sim.models.config import LLMConfig
+try:
+    import ollama
+except ImportError:
+    ollama = None
 
 logger = structlog.get_logger()
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class LLMFailureException(Exception):
-    """Exception raised when LLM call fails after retries."""
+    """Exception raised when LLM fails after retry."""
 
-    def __init__(self, reason: str, attempts: int, status_code: Optional[int] = None):
+    def __init__(
+        self, reason: str, attempts: int, status_code: Optional[int] = None
+    ):
+        """Initialize LLM failure exception.
+
+        Args:
+            reason: Reason for failure (e.g., "timeout", "server_error")
+            attempts: Number of attempts made
+            status_code: HTTP status code if applicable
+        """
         self.reason = reason
         self.attempts = attempts
         self.status_code = status_code
-        super().__init__(f"LLM failure after {attempts} attempts: {reason}")
+        super().__init__(
+            f"LLM failed after {attempts} attempts: {reason}"
+            + (f" (status={status_code})" if status_code else "")
+        )
 
 
-def should_retry_exception(exception: Exception) -> bool:
-    """Determine if an exception should trigger a retry.
-
-    Retry on:
-    - 5xx errors (server errors)
-    - 429 (rate limiting)
-    - Timeout exceptions
-
-    Don't retry on:
-    - 4xx errors (except 429) - client errors
-    """
-    if isinstance(exception, httpx.TimeoutException):
-        return True
-
-    if isinstance(exception, ollama.ResponseError):
-        status_code = getattr(exception, 'status_code', None)
-        if status_code is None:
-            # If no status code, assume it's a network error and retry
-            return True
-        # Retry on 5xx and 429
-        if status_code >= 500 or status_code == 429:
-            return True
-        # Don't retry on other 4xx errors
-        return False
-
-    # For other exceptions, don't retry by default
-    return False
+class ClientError(Exception):
+    """Non-retryable client error (4xx)."""
+    pass
 
 
 class LLMClient:
-    """Client for calling LLM with retry logic and structured outputs."""
+    """Client for LLM interactions with automatic retry logic."""
 
-    def __init__(self, config: LLMConfig):
-        """Initialize LLM client with configuration.
+    def __init__(self, config, ollama_client=None):
+        """Initialize LLM client.
 
         Args:
-            config: LLM configuration (model, host, timeout, retries, etc.)
+            config: LLMConfig instance with model, host, timeout, etc.
+            ollama_client: Optional pre-configured ollama.AsyncClient (for testing)
         """
         self.config = config
-        self.client = ollama.AsyncClient(
-            host=config.host,
-            timeout=config.timeout
-        )
-        self.logger = structlog.get_logger()
+        if ollama_client is not None:
+            self.client = ollama_client
+        elif ollama:
+            self.client = ollama.AsyncClient(
+                host=config.host, timeout=httpx.Timeout(config.timeout)
+            )
+        else:
+            raise ImportError("ollama library not installed")
 
-    def _extract_json_from_text(self, text: str) -> Optional[str]:
-        """Extract JSON from text that may contain surrounding content.
+        self.attempt_count = 0
 
-        Some LLMs wrap JSON in conversational text like:
-        "Sure, here is the response: {...} Hope this helps!"
-
-        Args:
-            text: Raw text potentially containing JSON
-
-        Returns:
-            Extracted JSON string or None if not found
-        """
-        # Try to find JSON object with regex
-        json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
-        matches = re.findall(json_pattern, text, re.DOTALL)
-
-        if matches:
-            # Return the first match (assume it's the main response)
-            return matches[0]
-
-        return None
-
-    async def call_with_retry(
-        self,
-        prompt: str,
-        response_model: Type[T],
-        component: str = "unknown"
-    ) -> T:
-        """Call LLM with retry logic and structured output validation.
+    def _extract_json_from_text(self, text: str) -> str:
+        """Extract JSON from text that may have conversational wrapper.
 
         Args:
-            prompt: The prompt to send to the LLM
-            response_model: Pydantic model class for response validation
-            component: Component name for logging (agent/validator/engine)
+            text: Text that may contain JSON
 
         Returns:
-            Validated Pydantic model instance
+            Extracted JSON string
 
         Raises:
-            LLMFailureException: If all retry attempts fail
+            ValueError: If no JSON found in text
         """
-        # Create retry decorator dynamically to track attempts
-        attempt_count = [0]  # Use list to modify in closure
+        # Try to find JSON object in text using regex
+        json_match = re.search(r"\{[^{}]*\}", text, re.DOTALL)
+        if json_match:
+            return json_match.group(0)
+        raise ValueError("No JSON object found in response")
+
+    async def call_with_retry(
+        self, prompt: str, response_model: Type[T]
+    ) -> T:
+        """Call LLM with automatic retry on transient failures.
+
+        Args:
+            prompt: Full prompt to send to LLM
+            response_model: Pydantic model class for response validation
+
+        Returns:
+            Validated instance of response_model
+
+        Raises:
+            LLMFailureException: If LLM fails after retry
+        """
+        self.attempt_count = 0
+
+        def _should_retry(retry_state):
+            """Determine if exception should trigger retry."""
+            if retry_state.outcome and retry_state.outcome.failed:
+                exception = retry_state.outcome.exception()
+                if isinstance(exception, ClientError):
+                    return False  # Never retry 4xx errors
+                # Retry all other exceptions
+                return True
+            return False
 
         @retry(
-            stop=stop_after_attempt(self.config.max_retries + 1),  # Initial + retries
+            stop=stop_after_attempt(self.config.max_retries + 1),
             wait=wait_exponential_jitter(initial=1, max=5),
-            retry=retry_if_exception_type((httpx.TimeoutException, ollama.ResponseError, ValueError)),
-            reraise=True
+            retry=_should_retry,
+            reraise=True,
         )
         async def _call_with_retry_inner():
-            attempt_count[0] += 1
-            start_time = datetime.now()
+            self.attempt_count += 1
+            start_time = time.time()
 
             try:
-                # Call Ollama with structured output format
+                # Call Ollama
                 response = await self.client.chat(
                     model=self.config.model,
-                    messages=[{'role': 'user', 'content': prompt}],
+                    messages=[{"role": "user", "content": prompt}],
                     format=response_model.model_json_schema(),
-                    options={
-                        'temperature': self.config.temperature,
-                    },
-                    stream=self.config.stream
+                    stream=False,
                 )
 
-                # Extract content from response
-                # Check if response is actually a generator/async iterator
-                if hasattr(response, '__aiter__'):
-                    # Streaming response: collect all chunks
-                    content_parts = []
-                    async for chunk in response:
-                        if 'message' in chunk and 'content' in chunk['message']:
-                            content_parts.append(chunk['message']['content'])
-                    content = ''.join(content_parts)
-                else:
-                    # Non-streaming response or dict from mock
-                    content = response['message']['content']
+                duration_ms = int((time.time() - start_time) * 1000)
 
-                # Try to parse directly
+                # Extract response content
+                content = response["message"]["content"]
+
+                # Try direct parsing
                 try:
                     result = response_model.model_validate_json(content)
-                except (ValidationError, json.JSONDecodeError) as parse_error:
-                    # Fallback: try to extract JSON from text
-                    self.logger.debug(
-                        "llm_json_extraction_fallback",
-                        component=component,
-                        raw_content=content[:200]  # Log first 200 chars
+                    logger.debug(
+                        "llm_call_success",
+                        attempts=self.attempt_count,
+                        duration_ms=duration_ms,
                     )
-                    extracted = self._extract_json_from_text(content)
-                    if extracted:
-                        try:
-                            result = response_model.model_validate_json(extracted)
-                        except (ValidationError, json.JSONDecodeError):
-                            # Even extracted JSON is invalid, treat as retryable error
-                            raise ValueError(f"Invalid JSON response format: {parse_error}")
-                    else:
-                        # No JSON found, treat as retryable error (LLM might have had issues)
-                        raise ValueError(f"Invalid JSON response format: {parse_error}")
+                    return result
+                except (ValidationError, json.JSONDecodeError):
+                    # Try fallback extraction
+                    try:
+                        json_str = self._extract_json_from_text(content)
+                        result = response_model.model_validate_json(json_str)
+                        logger.debug(
+                            "llm_call_success_with_extraction",
+                            attempts=self.attempt_count,
+                            duration_ms=duration_ms,
+                        )
+                        return result
+                    except (ValueError, ValidationError, json.JSONDecodeError) as e:
+                        raise LLMFailureException(
+                            reason="invalid_response",
+                            attempts=self.attempt_count,
+                        ) from e
 
-                # Log successful call
-                duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-                self.logger.debug(
-                    "llm_call_success",
-                    component=component,
-                    duration_ms=duration_ms,
-                    attempt=attempt_count[0],
-                    model=self.config.model
+            except httpx.TimeoutException as e:
+                logger.warning(
+                    "llm_timeout",
+                    attempt=self.attempt_count,
+                    error=str(e),
                 )
-
-                return result
-
-            except (httpx.TimeoutException, ollama.ResponseError, ValueError) as e:
-                # Check if we should retry
-                if isinstance(e, ValueError) or should_retry_exception(e):
-                    # Log retry attempt
-                    self.logger.warning(
-                        "llm_call_retry",
-                        component=component,
-                        attempt=attempt_count[0],
-                        error=str(e),
-                        will_retry=(attempt_count[0] < self.config.max_retries + 1)
-                    )
-                    raise  # Will trigger retry
-                else:
-                    # Don't retry on client errors
-                    status_code = getattr(e, 'status_code', None)
+                if self.attempt_count >= self.config.max_retries + 1:
                     raise LLMFailureException(
-                        reason=str(e),
-                        attempts=attempt_count[0],
-                        status_code=status_code
-                    )
+                        reason="timeout", attempts=self.attempt_count
+                    ) from e
+                raise  # Retry
+
+            except httpx.ConnectError as e:
+                logger.warning(
+                    "llm_connection_error",
+                    attempt=self.attempt_count,
+                    error=str(e),
+                )
+                if self.attempt_count >= self.config.max_retries + 1:
+                    raise LLMFailureException(
+                        reason="connection_error",
+                        attempts=self.attempt_count,
+                    ) from e
+                raise  # Retry
+
+            except Exception as e:
+                error_str = str(e).lower()
+                # Check if it's a 4xx client error (don't retry)
+                if "404" in error_str or "400" in error_str:
+                    raise ClientError(f"Client error: {e}") from e
+
+                # 5xx or other errors (retry)
+                logger.warning(
+                    "llm_error",
+                    attempt=self.attempt_count,
+                    error=str(e),
+                )
+                if self.attempt_count >= self.config.max_retries + 1:
+                    raise LLMFailureException(
+                        reason="server_error",
+                        attempts=self.attempt_count,
+                        status_code=500,
+                    ) from e
+                raise  # Retry
 
         try:
             return await _call_with_retry_inner()
-        except Exception as e:
-            # Final failure after all retries
-            self.logger.error(
-                "LLM_FAILURE",
-                component=component,
-                error=str(e),
-                attempts=attempt_count[0],
-                model=self.config.model
+        except ClientError as e:
+            # 4xx errors - don't retry, convert to LLMFailureException
+            exc = LLMFailureException(
+                reason="client_error",
+                attempts=self.attempt_count,
+                status_code=404,
             )
-
-            # Convert to LLMFailureException if not already
-            if isinstance(e, LLMFailureException):
-                raise
-            else:
-                raise LLMFailureException(
-                    reason=str(e),
-                    attempts=attempt_count[0]
-                )
+            logger.error(
+                "LLM_FAILURE",
+                reason=exc.reason,
+                attempts=exc.attempts,
+                status_code=exc.status_code,
+            )
+            raise exc from e
+        except LLMFailureException as e:
+            # Already wrapped - log prominent ERROR message
+            logger.error(
+                "LLM_FAILURE",
+                reason=e.reason,
+                attempts=e.attempts,
+                status_code=e.status_code,
+            )
+            raise
+        except Exception as e:
+            # Wrap unexpected exceptions
+            exc = LLMFailureException(
+                reason="unknown_error",
+                attempts=self.attempt_count,
+            )
+            logger.error(
+                "LLM_FAILURE",
+                reason=exc.reason,
+                attempts=exc.attempts,
+            )
+            raise exc from e

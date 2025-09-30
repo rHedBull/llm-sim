@@ -1,30 +1,23 @@
-"""Economic LLM-based engine concrete implementation."""
-
-from typing import List
+"""Concrete economic LLM engine implementation."""
 
 from llm_sim.engines.llm_engine import LLMEngine
 from llm_sim.models.action import Action
 from llm_sim.models.llm_models import StateUpdateDecision
-from llm_sim.models.state import GlobalState, SimulationState
+from llm_sim.models.state import SimulationState, GlobalState
 
 
 class EconLLMEngine(LLMEngine):
-    """Concrete LLM engine for economic simulation.
-
-    Implements economic domain-specific logic for:
-    - State update prompts with monetary policy reasoning
-    - Interest rate updates based on validated policy actions
-    """
+    """Engine that updates economic state based on LLM reasoning."""
 
     def _construct_state_update_prompt(self, action: Action, state: GlobalState) -> str:
-        """Construct economic domain-specific state update prompt.
+        """Construct prompt for LLM to calculate new interest rate.
 
         Args:
             action: Validated action to apply
             state: Current global state
 
         Returns:
-            Full prompt string for LLM state reasoning
+            Prompt for state update calculation
         """
         SYSTEM_MSG = """You are an economic simulation engine.
 Given a validated policy action, determine the new interest rate based on economic theory.
@@ -59,21 +52,16 @@ Calculate the new interest rate."""
         return SYSTEM_MSG + "\n\n" + USER_MSG
 
     def _apply_state_update(
-        self,
-        decision: StateUpdateDecision,
-        state: SimulationState
+        self, decision: StateUpdateDecision, state: SimulationState
     ) -> SimulationState:
-        """Apply economic domain-specific state update.
-
-        Updates only the interest_rate field (economic domain).
-        Note: Turn incrementation happens in run_turn, not here.
+        """Apply interest rate update to state.
 
         Args:
-            decision: LLM-generated state update decision
+            decision: LLM decision with new interest rate
             state: Current simulation state
 
         Returns:
-            New SimulationState with interest_rate updated
+            New state with updated interest rate
         """
         # Update only interest_rate (economic domain)
         new_global = state.global_state.model_copy(
@@ -81,26 +69,8 @@ Calculate the new interest rate."""
         )
 
         return SimulationState(
-            turn=state.turn,  # Keep same turn - will be incremented in run_turn override
+            turn=state.turn + 1,
             agents=state.agents,
             global_state=new_global,
             reasoning_chains=[]  # Will be populated by run_turn
         )
-
-    async def run_turn(self, validated_actions: List[Action]) -> SimulationState:
-        """Execute one simulation turn using LLM reasoning.
-
-        Overrides base run_turn to handle turn incrementation properly.
-        Turn is incremented once per run_turn call, not per action.
-
-        Args:
-            validated_actions: List of actions (may include unvalidated actions)
-
-        Returns:
-            New SimulationState with updated state and reasoning chains
-        """
-        # Call parent run_turn to process actions
-        new_state = await super().run_turn(validated_actions)
-
-        # Increment turn once at the end of the turn processing
-        return new_state.model_copy(update={"turn": new_state.turn + 1})

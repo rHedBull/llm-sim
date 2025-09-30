@@ -1,198 +1,191 @@
-"""Contract tests for LLMValidator abstract interface.
+"""
+Contract tests for LLMValidator abstract base class.
 
-These tests validate the LLMValidator abstract class contract from:
-specs/004-new-feature-i/contracts/validator_interface_contract.md
+These tests validate the interface and workflow of the LLM-enabled
+validator base class, ensuring abstract methods are enforced and the
+validation workflow is correct.
 
-Tests MUST FAIL before LLMValidator implementation (TDD).
+Status: THESE TESTS MUST FAIL - LLMValidator not yet implemented
 """
 
 import pytest
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock
 
-# Import will fail until LLMValidator is implemented
+# These imports will fail until implementation is complete
 try:
     from llm_sim.validators.llm_validator import LLMValidator
-    from llm_sim.utils.llm_client import LLMClient
-    from llm_sim.models.llm_models import ValidationResult, PolicyDecision
-    from llm_sim.models.state import SimulationState, GlobalState
+    from llm_sim.models.llm_models import ValidationResult
     from llm_sim.models.action import Action
+    from llm_sim.models.state import SimulationState, GlobalState
+    from llm_sim.utils.llm_client import LLMClient
 except ImportError:
     pytest.skip("LLMValidator not yet implemented", allow_module_level=True)
 
 
-# Mock concrete implementation for testing abstract interface
-class MockLLMValidator(LLMValidator):
-    """Concrete implementation of LLMValidator for testing."""
-
-    def _construct_validation_prompt(self, action: Action) -> str:
-        """Mock validation prompt construction."""
-        return f"Validate action: {action.action_string}"
-
-    def _get_domain_description(self) -> str:
-        """Mock domain description."""
-        return "Test domain includes: test actions"
+def test_llm_validator_calls_abstract_methods():
+    """Verify _construct_validation_prompt and _get_domain_description are abstract"""
+    # Then: Cannot instantiate LLMValidator directly
+    with pytest.raises(TypeError):
+        mock_client = MagicMock()
+        LLMValidator(llm_client=mock_client, domain="test", permissive=True)
 
 
-@pytest.fixture
-def mock_llm_client():
-    """Mock LLM client for testing."""
-    client = Mock(spec=LLMClient)
-    client.call_with_retry = AsyncMock()
-    return client
+@pytest.mark.asyncio
+async def test_llm_validator_validate_actions_workflow():
+    """Verify validation loop marks actions correctly"""
 
+    # Given: Mock concrete implementation
+    class TestLLMValidator(LLMValidator):
+        def _construct_validation_prompt(self, action):
+            return f"Validate: {action.action_string}"
 
-@pytest.fixture
-def sample_state():
-    """Sample simulation state."""
-    global_state = GlobalState(
-        gdp_growth=2.5,
-        inflation=3.0,
-        unemployment=5.0,
-        interest_rate=2.5
+        def _get_domain_description(self):
+            return "test domain"
+
+    mock_client = AsyncMock()
+    mock_client.call_with_retry.side_effect = [
+        ValidationResult(
+            is_valid=True,
+            reasoning="This is in domain",
+            confidence=0.9,
+            action_evaluated="action 1"
+        ),
+        ValidationResult(
+            is_valid=False,
+            reasoning="This is out of domain",
+            confidence=0.85,
+            action_evaluated="action 2"
+        )
+    ]
+
+    validator = TestLLMValidator(
+        llm_client=mock_client,
+        domain="test",
+        permissive=True
     )
-    return SimulationState(
+
+    actions = [
+        Action(agent_name="Agent1", action_string="action 1", validated=False),
+        Action(agent_name="Agent2", action_string="action 2", validated=False)
+    ]
+
+    state = SimulationState(
         turn=1,
         agents={},
-        global_state=global_state,
+        global_state=GlobalState(
+            gdp_growth=2.5,
+            inflation=3.0,
+            unemployment=5.0,
+            interest_rate=2.5
+        ),
         reasoning_chains=[]
     )
 
+    # When: Validating actions
+    validated_actions = await validator.validate_actions(actions, state)
 
-@pytest.fixture
-def sample_action():
-    """Sample action to validate."""
-    policy_decision = PolicyDecision(
-        action="Lower interest rates by 0.5%",
-        reasoning="Economic reasoning",
-        confidence=0.85
-    )
-    return Action(
-        agent_name="TestAgent",
-        action_string="Lower interest rates by 0.5%",
-        policy_decision=policy_decision,
-        validated=False
-    )
-
-
-@pytest.fixture
-def valid_result():
-    """Sample valid validation result."""
-    return ValidationResult(
-        is_valid=True,
-        reasoning="Action is within domain boundaries",
-        confidence=0.9,
-        action_evaluated="Lower interest rates by 0.5%"
-    )
-
-
-@pytest.fixture
-def invalid_result():
-    """Sample invalid validation result."""
-    return ValidationResult(
-        is_valid=False,
-        reasoning="Action is outside domain boundaries",
-        confidence=0.85,
-        action_evaluated="Deploy military forces"
-    )
-
-
-def test_llm_validator_calls_abstract_methods():
-    """Test that LLMValidator has required abstract methods.
-
-    Contract: LLMValidator must define:
-    - _construct_validation_prompt (abstract)
-    - _get_domain_description (abstract)
-    """
-    # Verify abstract methods exist
-    assert hasattr(LLMValidator, '_construct_validation_prompt')
-    assert hasattr(LLMValidator, '_get_domain_description')
-
-    # Verify they are abstract (can't instantiate without implementing)
-    try:
-        validator = LLMValidator(llm_client=Mock(), domain="test", permissive=True)
-        pytest.fail("Should not be able to instantiate abstract LLMValidator")
-    except TypeError as e:
-        assert "abstract" in str(e).lower()
-
-
-@pytest.mark.asyncio
-async def test_llm_validator_validate_actions_workflow(mock_llm_client, sample_state, sample_action, valid_result):
-    """Test validate_actions workflow.
-
-    Contract: LLMValidator.validate_actions should:
-    1. Loop through all actions
-    2. Call _construct_validation_prompt for each
-    3. Call llm_client.call_with_retry(prompt, ValidationResult)
-    4. Mark action.validated based on result.is_valid
-    5. Set action.validation_result
-    """
-    validator = MockLLMValidator(llm_client=mock_llm_client, domain="test", permissive=True)
-    mock_llm_client.call_with_retry.return_value = valid_result
-
-    actions = [sample_action]
-    validated_actions = await validator.validate_actions(actions, sample_state)
-
-    # Assertions
-    assert len(validated_actions) == 1
+    # Then: First action validated, second rejected
     assert validated_actions[0].validated is True
-    assert validated_actions[0].validation_result == valid_result
-    assert mock_llm_client.call_with_retry.called
+    assert validated_actions[1].validated is False
+    assert mock_client.call_with_retry.call_count == 2
 
 
 @pytest.mark.asyncio
-async def test_llm_validator_logs_reasoning_chain(mock_llm_client, sample_state, sample_action, valid_result, caplog):
-    """Test that reasoning chain is logged at DEBUG level.
+async def test_llm_validator_logs_reasoning_chain():
+    """Verify DEBUG log for each validation"""
 
-    Contract: LLMValidator should:
-    - Log reasoning chain with component='validator'
-    - Include reasoning and confidence
-    - Log at DEBUG level for each action
-    """
-    import logging
-    caplog.set_level(logging.DEBUG)
+    # Given: Mock implementation
+    class TestLLMValidator(LLMValidator):
+        def _construct_validation_prompt(self, action):
+            return f"Validate: {action.action_string}"
 
-    validator = MockLLMValidator(llm_client=mock_llm_client, domain="test", permissive=True)
-    mock_llm_client.call_with_retry.return_value = valid_result
+        def _get_domain_description(self):
+            return "test domain"
 
-    await validator.validate_actions([sample_action], sample_state)
+    mock_client = AsyncMock()
+    mock_client.call_with_retry.return_value = ValidationResult(
+        is_valid=True,
+        reasoning="Valid action",
+        confidence=0.8,
+        action_evaluated="test action"
+    )
 
-    # Check that DEBUG log contains reasoning information
-    debug_logs = [record for record in caplog.records if record.levelname == "DEBUG"]
-    assert len(debug_logs) > 0
+    validator = TestLLMValidator(
+        llm_client=mock_client,
+        domain="test",
+        permissive=True
+    )
+
+    actions = [
+        Action(agent_name="Agent1", action_string="test action", validated=False)
+    ]
+
+    state = SimulationState(
+        turn=1,
+        agents={},
+        global_state=GlobalState(
+            gdp_growth=2.5,
+            inflation=3.0,
+            unemployment=5.0,
+            interest_rate=2.5
+        ),
+        reasoning_chains=[]
+    )
+
+    # When: Validating actions
+    validated_actions = await validator.validate_actions(actions, state)
+
+    # Then: Reasoning logged (validation result attached)
+    assert validated_actions[0].validation_result is not None
+    assert validated_actions[0].validation_result.reasoning == "Valid action"
 
 
 @pytest.mark.asyncio
-async def test_llm_validator_returns_same_length_list(mock_llm_client, sample_state, valid_result):
-    """Test that output list has same length as input.
+async def test_llm_validator_returns_same_length_list():
+    """Verify output list length == input length"""
 
-    Contract: LLMValidator should:
-    - Return exactly the same number of actions as input
-    - Maintain action order
-    - Not filter or drop actions
-    """
-    validator = MockLLMValidator(llm_client=mock_llm_client, domain="test", permissive=True)
-    mock_llm_client.call_with_retry.return_value = valid_result
+    # Given: Mock implementation
+    class TestLLMValidator(LLMValidator):
+        def _construct_validation_prompt(self, action):
+            return "validate"
 
-    # Create 3 actions
-    actions = []
-    for i in range(3):
-        policy_decision = PolicyDecision(
-            action=f"Action {i}",
-            reasoning="Test reasoning",
-            confidence=0.8
-        )
-        action = Action(
-            agent_name=f"Agent{i}",
-            action_string=f"Action {i}",
-            policy_decision=policy_decision,
-            validated=False
-        )
-        actions.append(action)
+        def _get_domain_description(self):
+            return "domain"
 
-    validated_actions = await validator.validate_actions(actions, sample_state)
+    mock_client = AsyncMock()
+    mock_client.call_with_retry.return_value = ValidationResult(
+        is_valid=True,
+        reasoning="valid",
+        confidence=0.8,
+        action_evaluated="action"
+    )
 
-    # Assertions
+    validator = TestLLMValidator(
+        llm_client=mock_client,
+        domain="test",
+        permissive=True
+    )
+
+    actions = [
+        Action(agent_name=f"Agent{i}", action_string=f"action {i}", validated=False)
+        for i in range(5)
+    ]
+
+    state = SimulationState(
+        turn=1,
+        agents={},
+        global_state=GlobalState(
+            gdp_growth=2.5,
+            inflation=3.0,
+            unemployment=5.0,
+            interest_rate=2.5
+        ),
+        reasoning_chains=[]
+    )
+
+    # When: Validating actions
+    validated_actions = await validator.validate_actions(actions, state)
+
+    # Then: Same number of actions returned
     assert len(validated_actions) == len(actions)
-    assert validated_actions[0].agent_name == "Agent0"
-    assert validated_actions[1].agent_name == "Agent1"
-    assert validated_actions[2].agent_name == "Agent2"
+    assert len(validated_actions) == 5

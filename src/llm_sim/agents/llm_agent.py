@@ -1,6 +1,7 @@
-"""LLM-powered agent abstract base class."""
+"""Abstract base class for LLM-enabled agents."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from datetime import datetime
 
 import structlog
 
@@ -13,93 +14,99 @@ from llm_sim.utils.llm_client import LLMClient
 logger = structlog.get_logger()
 
 
-class LLMAgent(BaseAgent, ABC):
-    """Abstract base class for LLM-powered simulation agents.
-
-    Extends BaseAgent with LLM infrastructure for reasoning-based decision making.
-    Subclasses must implement domain-specific prompt construction and validation.
+class LLMAgent(BaseAgent):
+    """Abstract base class for agents that use LLM reasoning.
+    
+    This class provides the LLM infrastructure while requiring
+    subclasses to implement domain-specific prompt construction
+    and decision validation.
     """
 
-    def __init__(self, name: str, llm_client: LLMClient) -> None:
-        """Initialize LLM agent with client.
-
+    def __init__(self, name: str, llm_client: LLMClient):
+        """Initialize LLM-enabled agent.
+        
         Args:
-            name: Unique identifier for this agent
-            llm_client: Client for LLM interactions
+            name: Agent name
+            llm_client: LLM client for reasoning
         """
-        super().__init__(name)
+        super().__init__(name=name)
         self.llm_client = llm_client
 
     @abstractmethod
     def _construct_prompt(self, state: SimulationState) -> str:
         """Construct domain-specific prompt for LLM.
-
+        
         Args:
             state: Current simulation state
-
+            
         Returns:
-            Full prompt string to send to LLM
+            Prompt string to send to LLM
         """
         pass
 
     @abstractmethod
     def _validate_decision(self, decision: PolicyDecision) -> bool:
-        """Validate domain-specific policy decision.
-
+        """Validate that decision is within domain boundaries.
+        
         Args:
             decision: LLM-generated policy decision
-
+            
         Returns:
-            True if decision is acceptable for this domain
+            True if decision is valid for this domain
         """
         pass
 
     async def decide_action(self, state: SimulationState) -> Action:
-        """Decide on action using LLM reasoning.
-
+        """Generate action using LLM reasoning.
+        
         Args:
             state: Current simulation state
-
+            
         Returns:
-            Action with LLM-generated policy decision
-
+            Action with policy decision
+            
         Raises:
-            LLMFailureException: If LLM call fails after retries
+            LLMFailureException: If LLM fails after retry
         """
-        # Construct domain-specific prompt
+        start_time = datetime.now()
+        
+        # Step 1: Construct domain-specific prompt
         prompt = self._construct_prompt(state)
-
-        # Call LLM with retry logic
+        
+        # Step 2: Call LLM with retry logic
         decision = await self.llm_client.call_with_retry(
             prompt=prompt,
-            response_model=PolicyDecision,
-            component="agent"
+            response_model=PolicyDecision
         )
-
-        # Log reasoning chain at DEBUG level
+        
+        duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        # Step 3: Validate decision
+        if not self._validate_decision(decision):
+            logger.warning(
+                "agent_decision_invalid",
+                agent=self.name,
+                action=decision.action,
+                reason="Failed domain validation"
+            )
+            # Still create action but mark as potentially problematic
+        
+        # Step 4: Log reasoning chain at DEBUG level
         logger.debug(
             "llm_reasoning_chain",
             component="agent",
             agent_name=self.name,
             reasoning=decision.reasoning,
             confidence=decision.confidence,
-            action=decision.action
+            duration_ms=duration_ms
         )
-
-        # Validate decision
-        if not self._validate_decision(decision):
-            logger.warning(
-                "invalid_decision",
-                component="agent",
-                agent_name=self.name,
-                action=decision.action,
-                reasoning=decision.reasoning
-            )
-
-        # Create and return Action
-        return Action(
+        
+        # Step 5: Create Action with policy decision
+        action = Action(
             agent_name=self.name,
             action_string=decision.action,
             policy_decision=decision,
-            validated=False
+            validated=False  # Will be set by validator
         )
+        
+        return action

@@ -1,4 +1,4 @@
-"""Economic LLM agent concrete implementation."""
+"""Concrete economic LLM agent implementation."""
 
 from llm_sim.agents.llm_agent import LLMAgent
 from llm_sim.models.llm_models import PolicyDecision
@@ -6,20 +6,16 @@ from llm_sim.models.state import SimulationState
 
 
 class EconLLMAgent(LLMAgent):
-    """Economic policy agent using LLM reasoning.
-
-    Specializes in economic policy decisions by analyzing GDP, inflation,
-    unemployment, and interest rate indicators.
-    """
+    """Agent that generates economic policy actions using LLM reasoning."""
 
     def _construct_prompt(self, state: SimulationState) -> str:
-        """Construct economic policy prompt with current indicators.
+        """Construct economic policy prompt for LLM.
 
         Args:
-            state: Current simulation state with economic indicators
+            state: Current simulation state
 
         Returns:
-            Full prompt including system message and current state
+            Prompt string with economic indicators
         """
         SYSTEM_MSG = """You are an economic policy advisor for a nation.
 Analyze the current economic state and propose ONE specific policy action.
@@ -48,14 +44,18 @@ Propose ONE specific economic policy action."""
         return SYSTEM_MSG + "\n\n" + USER_MSG
 
     def _validate_decision(self, decision: PolicyDecision) -> bool:
-        """Validate that decision contains economic policy keywords.
+        """Validate that decision is economic in nature.
 
         Args:
             decision: LLM-generated policy decision
 
         Returns:
-            True if action contains economic keywords, False otherwise
+            True if action contains economic keywords
         """
-        economic_keywords = ['rate', 'rates', 'fiscal', 'tax', 'trade', 'monetary', 'interest']
+        economic_keywords = [
+            'rate', 'rates', 'fiscal', 'tax', 'trade', 
+            'monetary', 'interest', 'spending', 'budget'
+        ]
+
         action_lower = decision.action.lower()
         return any(keyword in action_lower for keyword in economic_keywords)
