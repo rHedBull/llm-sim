@@ -50,15 +50,8 @@ Propose ONE specific economic policy action."""
             decision: LLM-generated policy decision
 
         Returns:
-            True if action contains economic keywords
+            Always True - let the LLM validator handle domain validation
         """
-        economic_keywords = [
-            'rate', 'rates', 'fiscal', 'tax', 'trade',
-            'monetary', 'interest', 'spending', 'budget',
-            'wage', 'wages', 'infrastructure', 'investment',
-            'subsidy', 'subsidies', 'tariff', 'regulation',
-            'export', 'import', 'currency', 'credit'
-        ]
-
-        action_lower = decision.action.lower()
-        return any(keyword in action_lower for keyword in economic_keywords)
+        # Agent-side validation removed - LLM validator is smart enough
+        # to determine if actions are within the economic domain
+        return True

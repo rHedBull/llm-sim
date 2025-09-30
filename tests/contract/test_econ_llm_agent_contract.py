@@ -93,25 +93,21 @@ def test_econ_agent_validates_economic_keywords():
     mock_client = AsyncMock()
     agent = EconLLMAgent(name="TestNation", llm_client=mock_client)
 
-    # When: Validating economic action
+    # When: Validating any action (economic or not)
     economic_decision = PolicyDecision(
         action="Adjust interest rates to 2.0%",
         reasoning="Economic policy adjustment",
         confidence=0.8
     )
-
-    # Then: Economic action is valid
-    assert agent._validate_decision(economic_decision) is True
-
-    # When: Validating non-economic action
     military_decision = PolicyDecision(
         action="Deploy troops to border region",
         reasoning="Military action",
         confidence=0.7
     )
 
-    # Then: Non-economic action is invalid
-    assert agent._validate_decision(military_decision) is False
+    # Then: All actions pass agent validation (domain validation done by validator)
+    assert agent._validate_decision(economic_decision) is True
+    assert agent._validate_decision(military_decision) is True
 
 
 @pytest.mark.asyncio
