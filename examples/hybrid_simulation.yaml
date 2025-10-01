@@ -4,6 +4,7 @@
 simulation:
   name: "Hybrid Economic Simulation"
   max_turns: 15
+  checkpoint_interval: 5  # Save checkpoint every 5 turns
   termination:
     min_value: 0.0
     max_value: 1000000.0

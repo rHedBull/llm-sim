@@ -1,13 +1,14 @@
 """End-to-end test for LLM-based simulation with mocked LLM responses."""
 
 import pytest
+from pathlib import Path
 from unittest.mock import AsyncMock, patch, MagicMock
 
 from llm_sim.orchestrator import SimulationOrchestrator
 from llm_sim.models.llm_models import PolicyDecision, ValidationResult, StateUpdateDecision
 
 
-def test_llm_simulation_complete_flow_mocked():
+def test_llm_simulation_complete_flow_mocked(tmp_path):
     """Test complete LLM simulation flow with mocked LLM client.
 
     This is an end-to-end test that verifies:
@@ -70,7 +71,7 @@ def test_llm_simulation_complete_flow_mocked():
         ]
 
         # Create orchestrator and override config for faster test
-        orchestrator = SimulationOrchestrator.from_yaml("config_llm_example.yaml")
+        orchestrator = SimulationOrchestrator.from_yaml("config_llm_example.yaml", output_root=tmp_path)
         orchestrator.config.simulation.max_turns = 1
 
         # Run simulation
@@ -109,7 +110,7 @@ def test_llm_simulation_complete_flow_mocked():
         assert stats["final_turn"] == 1
 
 
-def test_llm_validation_rejection_flow_mocked():
+def test_llm_validation_rejection_flow_mocked(tmp_path):
     """Test that rejected actions are properly skipped by engine."""
 
     with patch("llm_sim.utils.llm_client.LLMClient.call_with_retry", new_callable=AsyncMock) as mock_call:
@@ -151,7 +152,7 @@ def test_llm_validation_rejection_flow_mocked():
             ),
         ]
 
-        orchestrator = SimulationOrchestrator.from_yaml("config_llm_example.yaml")
+        orchestrator = SimulationOrchestrator.from_yaml("config_llm_example.yaml", output_root=tmp_path)
         orchestrator.config.simulation.max_turns = 1
         results = orchestrator.run()
 
@@ -167,12 +168,12 @@ def test_llm_validation_rejection_flow_mocked():
         assert abs(final_state.global_state.interest_rate - 2.0) < 0.01
 
 
-def test_llm_with_real_config_file():
+def test_llm_with_real_config_file(tmp_path):
     """Test that LLM config file loads correctly (without running simulation)."""
 
     # This test just verifies the config loads without Ollama running
     try:
-        orchestrator = SimulationOrchestrator.from_yaml("config_llm_example.yaml")
+        orchestrator = SimulationOrchestrator.from_yaml("config_llm_example.yaml", output_root=tmp_path)
 
         # Verify components are LLM-based
         assert orchestrator.config.llm is not None

@@ -1,6 +1,7 @@
 """Integration tests for programmatic simulation orchestration."""
 
 import pytest
+from pathlib import Path
 
 from llm_sim.orchestrator import SimulationOrchestrator
 from llm_sim.models.config import SimulationConfig
@@ -9,7 +10,7 @@ from llm_sim.models.config import SimulationConfig
 class TestSimulationOrchestration:
     """Integration tests for programmatic simulation execution."""
 
-    def test_basic_simulation_run(self) -> None:
+    def test_basic_simulation_run(self, tmp_path: Path) -> None:
         """Test running a basic simulation."""
         config_data = {
             "simulation": {
@@ -27,7 +28,7 @@ class TestSimulationOrchestration:
         }
 
         config = SimulationConfig(**config_data)
-        orchestrator = SimulationOrchestrator(config)
+        orchestrator = SimulationOrchestrator(config, output_root=tmp_path)
 
         result = orchestrator.run()
 
@@ -46,7 +47,7 @@ class TestSimulationOrchestration:
         history = result["history"]
         assert len(history) == 6  # Initial + 5 turns
 
-    def test_early_termination_max_value(self) -> None:
+    def test_early_termination_max_value(self, tmp_path: Path) -> None:
         """Test early termination by max value."""
         config_data = {
             "simulation": {
@@ -64,7 +65,7 @@ class TestSimulationOrchestration:
         }
 
         config = SimulationConfig(**config_data)
-        orchestrator = SimulationOrchestrator(config)
+        orchestrator = SimulationOrchestrator(config, output_root=tmp_path)
 
         result = orchestrator.run()
 
@@ -72,7 +73,7 @@ class TestSimulationOrchestration:
         assert final_state.turn < 100  # Should terminate early
         assert final_state.global_state.total_economic_value > 3000.0
 
-    def test_early_termination_min_value(self) -> None:
+    def test_early_termination_min_value(self, tmp_path: Path) -> None:
         """Test early termination by min value."""
         config_data = {
             "simulation": {
@@ -89,7 +90,7 @@ class TestSimulationOrchestration:
         }
 
         config = SimulationConfig(**config_data)
-        orchestrator = SimulationOrchestrator(config)
+        orchestrator = SimulationOrchestrator(config, output_root=tmp_path)
 
         result = orchestrator.run()
 
@@ -97,7 +98,7 @@ class TestSimulationOrchestration:
         assert final_state.turn < 100  # Should terminate early
         assert final_state.global_state.total_economic_value < 500.0
 
-    def test_different_agent_strategies(self) -> None:
+    def test_different_agent_strategies(self, tmp_path: Path) -> None:
         """Test simulation with different agent strategies."""
         config_data = {
             "simulation": {
@@ -121,6 +122,7 @@ class TestSimulationOrchestration:
         orchestrator = SimulationOrchestrator(
             config,
             agent_strategies={"Grower": "grow", "Maintainer": "maintain", "Decliner": "decline"},
+            output_root=tmp_path,
         )
 
         result = orchestrator.run()
@@ -132,7 +134,7 @@ class TestSimulationOrchestration:
         assert final_state.agents["Decliner"].economic_strength == pytest.approx(1331.0, rel=1e-2)
 
 
-    def test_validation_statistics(self) -> None:
+    def test_validation_statistics(self, tmp_path: Path) -> None:
         """Test that validation statistics are tracked."""
         config_data = {
             "simulation": {
@@ -150,7 +152,7 @@ class TestSimulationOrchestration:
         }
 
         config = SimulationConfig(**config_data)
-        orchestrator = SimulationOrchestrator(config)
+        orchestrator = SimulationOrchestrator(config, output_root=tmp_path)
 
         result = orchestrator.run()
 

@@ -1,6 +1,7 @@
 """Integration tests that verify actual implementation details."""
 
 import pytest
+from pathlib import Path
 from typing import List
 
 from llm_sim.orchestrator import SimulationOrchestrator
@@ -15,7 +16,7 @@ from llm_sim.implementations.validators.always_valid import AlwaysValidValidator
 class TestActualImplementation:
     """Tests that verify actual implementation logic, not mocks."""
 
-    def test_economic_engine_interest_calculation(self) -> None:
+    def test_economic_engine_interest_calculation(self, tmp_path: Path) -> None:
         """Test that EconomicEngine correctly applies compound interest."""
         config_data = {
             "simulation": {
@@ -56,7 +57,7 @@ class TestActualImplementation:
             expected_value, rel=1e-9
         )
 
-    def test_nation_agent_strategy_behavior(self) -> None:
+    def test_nation_agent_strategy_behavior(self, tmp_path: Path) -> None:
         """Test that NationAgent returns correct actions based on strategy."""
         # Test grow strategy
         grow_agent = NationAgent(name="GrowNation", strategy="grow")
@@ -97,7 +98,7 @@ class TestActualImplementation:
         assert decline_action.action_name == "decline"
         assert decline_action.parameters["strength"] == 3000.0
 
-    def test_validator_marks_actions_correctly(self) -> None:
+    def test_validator_marks_actions_correctly(self, tmp_path: Path) -> None:
         """Test that AlwaysValidValidator properly marks actions as validated."""
         validator = AlwaysValidValidator()
 
@@ -131,7 +132,7 @@ class TestActualImplementation:
         assert stats["total_validated"] == 2
         assert stats["total_rejected"] == 0
 
-    def test_orchestrator_integration_flow(self) -> None:
+    def test_orchestrator_integration_flow(self, tmp_path: Path) -> None:
         """Test the full orchestrator flow with real components."""
         config_data = {
             "simulation": {
@@ -149,7 +150,7 @@ class TestActualImplementation:
         }
 
         config = SimulationConfig(**config_data)
-        orchestrator = SimulationOrchestrator(config)
+        orchestrator = SimulationOrchestrator(config, output_root=tmp_path)
 
         # Verify components are correctly instantiated (use type name due to import issues)
         assert type(orchestrator.engine).__name__ == "EconomicEngine"
@@ -183,7 +184,7 @@ class TestActualImplementation:
             2000 * (1.05**3), rel=1e-9
         )
 
-    def test_termination_conditions_actually_work(self) -> None:
+    def test_termination_conditions_actually_work(self, tmp_path: Path) -> None:
         """Test that termination conditions are evaluated correctly by the engine."""
         # Test max value termination
         config_data = {
@@ -218,7 +219,7 @@ class TestActualImplementation:
         )
         assert engine.check_termination(state_above_max)
 
-    def test_state_immutability_in_practice(self) -> None:
+    def test_state_immutability_in_practice(self, tmp_path: Path) -> None:
         """Test that states are truly immutable during simulation."""
         config_data = {
             "simulation": {
@@ -235,7 +236,7 @@ class TestActualImplementation:
         }
 
         config = SimulationConfig(**config_data)
-        orchestrator = SimulationOrchestrator(config)
+        orchestrator = SimulationOrchestrator(config, output_root=tmp_path)
         result = orchestrator.run()
 
         # Verify each state in history is distinct
@@ -249,7 +250,7 @@ class TestActualImplementation:
         with pytest.raises(Exception):  # Pydantic will raise an error
             result["history"][0].turn = 999
 
-    def test_action_parameters_passed_correctly(self) -> None:
+    def test_action_parameters_passed_correctly(self, tmp_path: Path) -> None:
         """Test that action parameters are correctly passed through the system."""
         agent = NationAgent(name="TestNation", strategy="grow")
 

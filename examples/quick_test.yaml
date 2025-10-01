@@ -4,6 +4,7 @@
 simulation:
   name: "Quick Test"
   max_turns: 5
+  checkpoint_interval: 5  # Save checkpoint at end
   termination:
     min_value: 0.0
     max_value: 100000.0

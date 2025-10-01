@@ -1,6 +1,7 @@
 """Specific integration tests for NationAgent implementation."""
 
 import pytest
+from pathlib import Path
 
 from llm_sim.implementations.agents.nation import NationAgent
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
@@ -11,7 +12,7 @@ from llm_sim.models.config import SimulationConfig
 class TestNationAgentImplementation:
     """Tests that verify the actual NationAgent implementation logic."""
 
-    def test_nation_agent_initialization(self) -> None:
+    def test_nation_agent_initialization(self, tmp_path: Path) -> None:
         """Test NationAgent initialization with different strategies."""
         # Test default strategy
         agent_default = NationAgent(name="DefaultNation")
@@ -34,7 +35,7 @@ class TestNationAgentImplementation:
         with pytest.raises(ValueError, match="Invalid strategy 'invalid'"):
             NationAgent(name="InvalidNation", strategy="invalid")
 
-    def test_nation_agent_state_tracking(self) -> None:
+    def test_nation_agent_state_tracking(self, tmp_path: Path) -> None:
         """Test that NationAgent properly tracks received state."""
         agent = NationAgent(name="TrackingNation", strategy="grow")
 
@@ -68,7 +69,7 @@ class TestNationAgentImplementation:
         assert updated_state.turn == 2
         assert updated_state.agents["TrackingNation"].economic_strength == 1050.0
 
-    def test_nation_agent_action_decision_logic(self) -> None:
+    def test_nation_agent_action_decision_logic(self, tmp_path: Path) -> None:
         """Test the actual decision logic of NationAgent."""
         # Test each strategy produces correct action name
         strategies = ["grow", "maintain", "decline"]
@@ -94,7 +95,7 @@ class TestNationAgentImplementation:
             assert action.parameters["strength"] == 1234.56
             assert not action.validated  # Actions start unvalidated
 
-    def test_nation_agent_error_handling(self) -> None:
+    def test_nation_agent_error_handling(self, tmp_path: Path) -> None:
         """Test NationAgent error handling for edge cases."""
         agent = NationAgent(name="TestNation", strategy="grow")
 
@@ -109,7 +110,7 @@ class TestNationAgentImplementation:
         with pytest.raises(KeyError, match="TestNation"):
             agent.decide_action(wrong_state)
 
-    def test_nation_agent_in_full_simulation(self) -> None:
+    def test_nation_agent_in_full_simulation(self, tmp_path: Path) -> None:
         """Test NationAgent behavior in a complete simulation."""
         config_data = {
             "simulation": {
@@ -135,6 +136,7 @@ class TestNationAgentImplementation:
                 "TestNation1": "grow",
                 "TestNation2": "maintain",
             },
+            output_root=tmp_path
         )
 
         # Verify agents were created with correct strategies
@@ -155,7 +157,7 @@ class TestNationAgentImplementation:
             assert "TestNation1" in state.agents
             assert "TestNation2" in state.agents
 
-    def test_nation_agent_strategy_persistence(self) -> None:
+    def test_nation_agent_strategy_persistence(self, tmp_path: Path) -> None:
         """Test that agent strategy persists throughout simulation."""
         agent = NationAgent(name="PersistentNation", strategy="decline")
 
@@ -177,7 +179,7 @@ class TestNationAgentImplementation:
             assert action.action_name == "decline"
             assert agent.strategy == "decline"  # Strategy shouldn't change
 
-    def test_nation_agent_parameter_passing(self) -> None:
+    def test_nation_agent_parameter_passing(self, tmp_path: Path) -> None:
         """Test that NationAgent correctly passes parameters in actions."""
         agent = NationAgent(name="ParamNation", strategy="grow")
 

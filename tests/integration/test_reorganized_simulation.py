@@ -41,7 +41,7 @@ validator:
         config_file.write_text(config_content)
         
         # This will test if orchestrator can load from new paths
-        orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         
         # Verify components loaded correctly
         assert orchestrator is not None
@@ -76,7 +76,7 @@ validator:
         config_file = tmp_path / "mixed_config.yaml"
         config_file.write_text(config_content)
         
-        orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         
         # Verify we have both types
         assert len(orchestrator.agents) == 2
@@ -125,7 +125,7 @@ validator:
         config_file.write_text(config_content)
         
         # Should load without errors
-        orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         assert orchestrator is not None
 
     def test_simulation_produces_expected_output(self, tmp_path):
@@ -151,7 +151,7 @@ validator:
         config_file = tmp_path / "output_config.yaml"
         config_file.write_text(config_content)
         
-        orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         
         # Run simulation
         result = orchestrator.run()

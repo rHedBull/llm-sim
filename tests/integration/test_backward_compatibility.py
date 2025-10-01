@@ -38,7 +38,7 @@ validator:
         config_file.write_text(old_style_config)
         
         # Should load and run without errors
-        orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         assert orchestrator is not None
         
         final_state = orchestrator.run()
@@ -67,7 +67,7 @@ validator:
         config_file.write_text(config_content)
         
         # These API calls should still work
-        orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         
         # Check expected attributes exist
         assert hasattr(orchestrator, 'agents')
@@ -103,11 +103,11 @@ validator:
         config_file.write_text(config_content)
         
         # Run twice and compare
-        orchestrator1 = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator1 = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         result1 = orchestrator1.run()
         final_state1 = result1 if hasattr(result1, 'turn') else result1['final_state']
 
-        orchestrator2 = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator2 = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         result2 = orchestrator2.run()
         final_state2 = result2 if hasattr(result2, 'turn') else result2['final_state']
 
@@ -143,7 +143,7 @@ validator:
             config_file.write_text(config_content)
             
             # Should load without errors
-            orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+            orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
             assert orchestrator is not None
 
     def test_validator_stats_still_accessible(self, tmp_path):
@@ -168,7 +168,7 @@ validator:
         config_file = tmp_path / "stats_config.yaml"
         config_file.write_text(config_content)
         
-        orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
+        orchestrator = SimulationOrchestrator.from_yaml(str(config_file), output_root=tmp_path)
         orchestrator.run()
         
         # Validator stats should still be accessible

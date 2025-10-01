@@ -9,7 +9,8 @@
 
 simulation:
   name: "LLM Economic Policy Simulation"
-  max_turns: 2
+  max_turns: 10
+  checkpoint_interval: 3  # Save checkpoint every turn
   termination:
     min_value: null
     max_value: null

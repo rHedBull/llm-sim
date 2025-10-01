@@ -4,6 +4,7 @@
 simulation:
   name: "Basic Economic Simulation"
   max_turns: 100
+  checkpoint_interval: 10  # Save checkpoint every 10 turns
   termination:
     min_value: 0.0
     max_value: 1000000.0  # Stop if total economy exceeds 1 million

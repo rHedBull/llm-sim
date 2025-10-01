@@ -4,6 +4,7 @@
 simulation:
   name: "Extended Economic Test"
   max_turns: 200
+  checkpoint_interval: 20  # Save checkpoint every 20 turns
   termination:
     min_value: 100.0     # Stop if economy crashes below 100
     max_value: 50000.0   # Stop if economy exceeds 50,000

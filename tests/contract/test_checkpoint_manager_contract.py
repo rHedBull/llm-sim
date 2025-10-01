@@ -19,26 +19,26 @@ def create_test_state(turn: int) -> SimulationState:
     )
 
 
-def test_should_save_checkpoint_returns_true_at_intervals():
+def test_should_save_checkpoint_returns_true_at_intervals(tmp_path):
     """Test should_save_checkpoint returns True at intervals."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5)
+    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
 
     assert manager.should_save_checkpoint(5, is_final=False) is True
     assert manager.should_save_checkpoint(10, is_final=False) is True
     assert manager.should_save_checkpoint(3, is_final=False) is False
 
 
-def test_should_save_checkpoint_always_true_for_final():
+def test_should_save_checkpoint_always_true_for_final(tmp_path):
     """Test should_save_checkpoint always True for final turn."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5)
+    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
 
     assert manager.should_save_checkpoint(7, is_final=True) is True
     assert manager.should_save_checkpoint(100, is_final=True) is True
 
 
-def test_should_save_checkpoint_respects_disabled_interval():
+def test_should_save_checkpoint_respects_disabled_interval(tmp_path):
     """Test should_save_checkpoint respects disabled interval (None)."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=None)
+    manager = CheckpointManager("test_run_01", checkpoint_interval=None, output_root=tmp_path)
 
     assert manager.should_save_checkpoint(5, is_final=False) is False
     assert manager.should_save_checkpoint(10, is_final=False) is False

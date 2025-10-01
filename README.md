@@ -23,6 +23,7 @@ python main.py config_llm_example.yaml
 - **YAML configuration**: Simple declarative configuration
 - **Extensible architecture**: Three-tier inheritance (Base → LLM Abstract → Concrete)
 - **Full observability**: Structured logging with reasoning chain traces
+- **Checkpoint system**: Automatic state persistence with configurable intervals
 
 ## Documentation
 
@@ -41,6 +42,27 @@ python main.py config_llm_example.yaml
 - All basic requirements
 - Ollama (local LLM server)
 - Additional deps: ollama, httpx, tenacity
+
+## Output Structure
+
+Simulations save results to the `output/` directory:
+
+```
+output/
+└── {SimName}_{NumAgents}agents_{Timestamp}_{Counter}/
+    ├── checkpoints/
+    │   ├── turn_5.json      # Interval checkpoints (every N turns)
+    │   ├── turn_10.json
+    │   ├── last.json        # Latest state (overwritten each turn)
+    │   └── final.json       # Final state (when simulation completes)
+    └── result.json          # Complete results with metadata
+```
+
+Configure checkpoint intervals in your YAML:
+```yaml
+simulation:
+  checkpoint_interval: 5  # Save every 5 turns (null to disable)
+```
 
 ## Development
 

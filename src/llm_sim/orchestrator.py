@@ -76,11 +76,12 @@ class SimulationOrchestrator:
         self.history: List[SimulationState] = []
 
     @classmethod
-    def from_yaml(cls, path: str) -> "SimulationOrchestrator":
+    def from_yaml(cls, path: str, output_root: Path = Path("output")) -> "SimulationOrchestrator":
         """Load configuration from YAML file and create orchestrator.
 
         Args:
             path: Path to YAML configuration file
+            output_root: Root directory for output files
 
         Returns:
             Configured SimulationOrchestrator instance
@@ -89,7 +90,7 @@ class SimulationOrchestrator:
             config_data = yaml.safe_load(f)
 
         config = SimulationConfig(**config_data)
-        return cls(config)
+        return cls(config, output_root=output_root)
 
     def _configure_logging(self) -> None:
         """Configure logging based on config."""
