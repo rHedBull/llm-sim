@@ -78,9 +78,27 @@ def create_agent_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[Ba
             literal_type = Literal[tuple(var_def.values)]  # type: ignore
             fields[var_name] = (literal_type, Field(default=var_def.default))
 
-    return create_model(
+    # Create the base model
+    model = create_model(
         "AgentState", __config__=ConfigDict(frozen=True, arbitrary_types_allowed=True), **fields
     )
+
+    # Override model_copy to include validation
+    original_model_copy = model.model_copy
+
+    def validated_model_copy(self, *, update: Dict[str, Any] | None = None, deep: bool = False):
+        """model_copy that validates the updated fields."""
+        # Get current data
+        data = self.model_dump()
+        # Apply updates
+        if update:
+            data.update(update)
+        # Create new instance with validation
+        return model(**data)
+
+    model.model_copy = validated_model_copy  # type: ignore
+
+    return model
 
 
 def create_global_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[BaseModel]:
@@ -121,6 +139,24 @@ def create_global_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[B
             literal_type = Literal[tuple(var_def.values)]  # type: ignore
             fields[var_name] = (literal_type, Field(default=var_def.default))
 
-    return create_model(
+    # Create the base model
+    model = create_model(
         "GlobalState", __config__=ConfigDict(frozen=True, arbitrary_types_allowed=True), **fields
     )
+
+    # Override model_copy to include validation
+    original_model_copy = model.model_copy
+
+    def validated_model_copy(self, *, update: Dict[str, Any] | None = None, deep: bool = False):
+        """model_copy that validates the updated fields."""
+        # Get current data
+        data = self.model_dump()
+        # Apply updates
+        if update:
+            data.update(update)
+        # Create new instance with validation
+        return model(**data)
+
+    model.model_copy = validated_model_copy  # type: ignore
+
+    return model

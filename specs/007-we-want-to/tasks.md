@@ -66,7 +66,7 @@ Single Python package structure:
 
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
 
-- [ ] **T004** [P] Contract test for config schema validation
+- [X] **T004** [P] Contract test for config schema validation
   - Create: `tests/contract/test_config_schema.py`
   - Test: Valid config with state_variables passes
   - Test: Invalid type rejected
@@ -77,7 +77,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/contracts/README.md` for examples
   - Verify: All tests FAIL (schema validation not implemented yet)
 
-- [ ] **T005** [P] Contract test for checkpoint schema validation
+- [X] **T005** [P] Contract test for checkpoint schema validation
   - Create: `tests/contract/test_checkpoint_schema.py`
   - Test: Valid checkpoint with schema_hash passes
   - Test: Missing schema_hash rejected
@@ -89,7 +89,7 @@ Single Python package structure:
 
 ## Phase 3.3: Unit Tests for Variable System (TDD) ⚠️ MUST COMPLETE BEFORE 3.4
 
-- [ ] **T006** [P] Unit test for VariableDefinition validation
+- [X] **T006** [P] Unit test for VariableDefinition validation
   - Create: `tests/unit/test_variable_definition.py`
   - Test: Float with min/max validates correctly
   - Test: Int with constraints validates correctly
@@ -102,7 +102,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/data-model.md` (VariableDefinition section)
   - Verify: All tests FAIL (model not implemented yet)
 
-- [ ] **T007** [P] Unit test for dynamic AgentState model creation
+- [X] **T007** [P] Unit test for dynamic AgentState model creation
   - Create: `tests/unit/test_agent_state_factory.py`
   - Test: Create model with float variable
   - Test: Create model with int variable + constraints
@@ -114,7 +114,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/data-model.md` (AgentState section)
   - Verify: All tests FAIL (factory function not implemented yet)
 
-- [ ] **T008** [P] Unit test for dynamic GlobalState model creation
+- [X] **T008** [P] Unit test for dynamic GlobalState model creation
   - Create: `tests/unit/test_global_state_factory.py`
   - Test: Create model with mixed variable types
   - Test: Model is frozen (immutable)
@@ -123,7 +123,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/data-model.md` (GlobalState section)
   - Verify: All tests FAIL (factory function not implemented yet)
 
-- [ ] **T009** [P] Unit test for state updates with validation
+- [X] **T009** [P] Unit test for state updates with validation
   - Create: `tests/unit/test_state_updates.py`
   - Test: Valid update via model_copy() succeeds
   - Test: Update violating min constraint rejected
@@ -133,7 +133,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/research.md` (Constraint Enforcement section)
   - Verify: All tests FAIL (validation not implemented yet)
 
-- [ ] **T010** [P] Unit test for schema hash computation
+- [X] **T010** [P] Unit test for schema hash computation
   - Create: `tests/unit/test_schema_hash.py`
   - Test: Hash is deterministic (same input → same hash)
   - Test: Hash is order-independent (sorted keys)
@@ -142,7 +142,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/data-model.md` (CheckpointMetadata section)
   - Verify: All tests FAIL (hash function not implemented yet)
 
-- [ ] **T011** [P] Unit test for backward compatibility defaults
+- [X] **T011** [P] Unit test for backward compatibility defaults
   - Create: `tests/unit/test_backward_compatibility.py`
   - Test: Config without state_variables uses defaults
   - Test: Default agent vars include 'economic_strength'
@@ -155,7 +155,7 @@ Single Python package structure:
 
 ## Phase 3.4: Integration Tests (TDD) ⚠️ MUST COMPLETE BEFORE 3.5
 
-- [ ] **T012** [P] Integration test: Custom agent variables (Acceptance Scenario 1)
+- [X] **T012** [P] Integration test: Custom agent variables (Acceptance Scenario 1)
   - Create: `tests/integration/test_custom_agent_variables.py`
   - Test: Load config with agent vars (gdp: float, population: int)
   - Test: Initialize simulation
@@ -164,7 +164,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/spec.md` (Acceptance Scenarios section)
   - Verify: Test FAILS (integration not implemented yet)
 
-- [ ] **T013** [P] Integration test: Custom global variables (Acceptance Scenario 2)
+- [X] **T013** [P] Integration test: Custom global variables (Acceptance Scenario 2)
   - Create: `tests/integration/test_custom_global_variables.py`
   - Test: Load config with global vars (inflation: float, open_economy: bool)
   - Test: Initialize simulation
@@ -172,7 +172,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/spec.md` (Acceptance Scenarios section)
   - Verify: Test FAILS
 
-- [ ] **T014** [P] Integration test: Checkpoint persistence (Acceptance Scenario 3)
+- [X] **T014** [P] Integration test: Checkpoint persistence (Acceptance Scenario 3)
   - Create: `tests/integration/test_checkpoint_custom_vars.py`
   - Test: Run simulation with custom variables
   - Test: Create checkpoint
@@ -182,7 +182,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/spec.md` (Acceptance Scenarios section)
   - Verify: Test FAILS
 
-- [ ] **T015** [P] Integration test: Multiple simulation types (Acceptance Scenario 4)
+- [X] **T015** [P] Integration test: Multiple simulation types (Acceptance Scenario 4)
   - Create: `tests/integration/test_multiple_sim_types.py`
   - Test: Run economic simulation with econ variables
   - Test: Run military simulation with military variables
@@ -191,7 +191,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/spec.md` (Acceptance Scenarios section)
   - Verify: Test FAILS
 
-- [ ] **T016** [P] Integration test: Constraint enforcement (Acceptance Scenario 5)
+- [X] **T016** [P] Integration test: Constraint enforcement (Acceptance Scenario 5)
   - Create: `tests/integration/test_constraint_enforcement.py`
   - Test: Define variable with min/max constraints
   - Test: Attempt update exceeding max
@@ -200,7 +200,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/spec.md` (Acceptance Scenarios section)
   - Verify: Test FAILS
 
-- [ ] **T017** [P] Integration test: Invalid config type (Acceptance Scenario 7)
+- [X] **T017** [P] Integration test: Invalid config type (Acceptance Scenario 7)
   - Create: `tests/integration/test_invalid_config_type.py`
   - Test: Create config with unsupported type (e.g., complex_number)
   - Test: Load config
@@ -209,7 +209,7 @@ Single Python package structure:
   - Read: `specs/007-we-want-to/spec.md` (Acceptance Scenarios section)
   - Verify: Test FAILS
 
-- [ ] **T018** [P] Integration test: Schema compatibility (Acceptance Scenario 6)
+- [X] **T018** [P] Integration test: Schema compatibility (Acceptance Scenario 6)
   - Create: `tests/integration/test_schema_compatibility.py`
   - Test: Save checkpoint with schema X
   - Test: Modify config to schema Y
