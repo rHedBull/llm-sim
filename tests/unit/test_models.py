@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import ValidationError
 
-from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.state import SimulationState
 from llm_sim.models.action import Action
 from llm_sim.models.config import (
     SimulationConfig,
@@ -100,7 +100,7 @@ class TestSimulationConfig:
 class TestSimulationState:
     """Tests for SimulationState model."""
 
-    def test_create_state(self) -> None:
+    def test_create_state(self, AgentState, GlobalState) -> None:
         """Test creating a simulation state."""
         agents = {
             "Nation_A": AgentState(name="Nation_A", economic_strength=1000.0),
@@ -115,7 +115,7 @@ class TestSimulationState:
         assert state.agents["Nation_A"].economic_strength == 1000.0
         assert state.global_state.total_economic_value == 2500.0
 
-    def test_state_immutability(self) -> None:
+    def test_state_immutability(self, AgentState, GlobalState) -> None:
         """Test that state is immutable."""
         agents = {"Nation_A": AgentState(name="Nation_A", economic_strength=1000.0)}
         global_state = GlobalState(interest_rate=0.05, total_economic_value=1000.0)
@@ -127,7 +127,7 @@ class TestSimulationState:
         with pytest.raises(ValidationError):
             state.agents["Nation_A"].economic_strength = 2000.0  # type: ignore
 
-    def test_state_copy_with_update(self) -> None:
+    def test_state_copy_with_update(self, AgentState, GlobalState) -> None:
         """Test creating new state with updates."""
         agents = {"Nation_A": AgentState(name="Nation_A", economic_strength=1000.0)}
         global_state = GlobalState(interest_rate=0.05, total_economic_value=1000.0)

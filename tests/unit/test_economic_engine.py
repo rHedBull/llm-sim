@@ -1,7 +1,7 @@
 """Tests for the Economic Engine."""
 
 
-from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.state import SimulationState
 from llm_sim.models.action import Action
 from llm_sim.models.config import (
     SimulationConfig,
@@ -18,7 +18,7 @@ from llm_sim.implementations.engines.economic import EconomicEngine
 class TestEconomicEngine:
     """Tests for EconomicEngine implementation."""
 
-    def test_initialize_state(self) -> None:
+    def test_initialize_state(self, AgentState, GlobalState) -> None:
         """Test state initialization from config."""
         config = SimulationConfig(
             simulation=SimulationSettings(
@@ -43,7 +43,7 @@ class TestEconomicEngine:
         assert state.global_state.interest_rate == 0.05
         assert state.global_state.total_economic_value == 3000.0
 
-    def test_apply_engine_rules(self) -> None:
+    def test_apply_engine_rules(self, AgentState, GlobalState) -> None:
         """Test interest rate application."""
         config = SimulationConfig(
             simulation=SimulationSettings(
@@ -67,7 +67,7 @@ class TestEconomicEngine:
         assert new_state.agents["Nation_A"].economic_strength == 1100.0  # 1000 * 1.10
         assert new_state.global_state.total_economic_value == 1100.0
 
-    def test_apply_actions_grow(self) -> None:
+    def test_apply_actions_grow(self, AgentState, GlobalState) -> None:
         """Test applying growth actions."""
         config = SimulationConfig(
             simulation=SimulationSettings(
@@ -99,7 +99,7 @@ class TestEconomicEngine:
             new_state.agents["Nation_A"].economic_strength == 1000.0
         )  # No change in apply_actions
 
-    def test_check_termination_max_turns(self) -> None:
+    def test_check_termination_max_turns(self, AgentState, GlobalState) -> None:
         """Test termination by max turns."""
         config = SimulationConfig(
             simulation=SimulationSettings(
@@ -123,7 +123,7 @@ class TestEconomicEngine:
         )
         assert engine.check_termination(state_turn_5)
 
-    def test_check_termination_min_value(self) -> None:
+    def test_check_termination_min_value(self, AgentState, GlobalState) -> None:
         """Test termination by minimum value."""
         config = SimulationConfig(
             simulation=SimulationSettings(
@@ -155,7 +155,7 @@ class TestEconomicEngine:
         )
         assert engine.check_termination(state_below_min)
 
-    def test_check_termination_max_value(self) -> None:
+    def test_check_termination_max_value(self, AgentState, GlobalState) -> None:
         """Test termination by maximum value."""
         config = SimulationConfig(
             simulation=SimulationSettings(
@@ -187,7 +187,7 @@ class TestEconomicEngine:
         )
         assert engine.check_termination(state_above_max)
 
-    def test_run_turn(self) -> None:
+    def test_run_turn(self, AgentState, GlobalState) -> None:
         """Test running a complete turn."""
         config = SimulationConfig(
             simulation=SimulationSettings(

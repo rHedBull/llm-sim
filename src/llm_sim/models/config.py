@@ -61,7 +61,7 @@ class AgentConfig(BaseModel):
 
     name: str
     type: str
-    initial_economic_strength: float
+    initial_economic_strength: Optional[float] = None  # Optional for dynamic variable systems
 
 
 class ValidatorConfig(BaseModel):

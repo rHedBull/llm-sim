@@ -10,14 +10,14 @@ from .config import (
     TerminationConditions,
     ValidatorConfig,
 )
-from .state import AgentState, GlobalState, SimulationState
+from .state import SimulationState, create_agent_state_model, create_global_state_model
 
 __all__ = [
     "Action",
     "AgentConfig",
-    "AgentState",
+    "create_agent_state_model",
+    "create_global_state_model",
     "EngineConfig",
-    "GlobalState",
     "LoggingConfig",
     "SimulationConfig",
     "SimulationSettings",

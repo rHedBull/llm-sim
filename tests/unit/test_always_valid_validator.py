@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.state import SimulationState
 from llm_sim.models.action import Action
 from llm_sim.implementations.validators.always_valid import AlwaysValidValidator
 
@@ -16,7 +16,7 @@ class TestAlwaysValidValidator:
         assert validator.validation_count == 0
         assert validator.rejection_count == 0
 
-    def test_validate_action_always_true(self) -> None:
+    def test_validate_action_always_true(self, AgentState, GlobalState) -> None:
         """Test that validation always returns true."""
         validator = AlwaysValidValidator()
 
@@ -36,7 +36,7 @@ class TestAlwaysValidValidator:
         )
         assert validator.validate_action(action_invalid, state) is True
 
-    def test_validate_actions(self) -> None:
+    def test_validate_actions(self, AgentState, GlobalState) -> None:
         """Test validating multiple actions."""
         validator = AlwaysValidValidator()
 
@@ -64,7 +64,7 @@ class TestAlwaysValidValidator:
         assert validator.validation_count == 2
         assert validator.rejection_count == 0
 
-    def test_get_stats(self) -> None:
+    def test_get_stats(self, AgentState, GlobalState) -> None:
         """Test statistics tracking."""
         validator = AlwaysValidValidator()
 
@@ -92,7 +92,7 @@ class TestAlwaysValidValidator:
         assert stats["total_rejected"] == 0
         assert stats["acceptance_rate"] == 1.0
 
-    def test_action_marking(self) -> None:
+    def test_action_marking(self, AgentState, GlobalState) -> None:
         """Test that actions are properly marked."""
         validator = AlwaysValidValidator()
 

@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 
 from llm_sim.persistence.checkpoint_manager import CheckpointManager
 from llm_sim.persistence.exceptions import CheckpointSaveError, CheckpointLoadError
-from llm_sim.models.state import SimulationState, GlobalState
+from llm_sim.models.state import SimulationState, create_global_state_model
 from llm_sim.models.checkpoint import SimulationResults
 from llm_sim.models.config import VariableDefinition
 
@@ -21,6 +21,8 @@ def test_var_defs():
 
 def create_test_state(turn: int) -> SimulationState:
     """Create a test simulation state."""
+    global_vars = {"interest_rate": VariableDefinition(type="float", default=0.05)}
+    GlobalState = create_global_state_model(global_vars)
     return SimulationState(
         turn=turn,
         agents={},

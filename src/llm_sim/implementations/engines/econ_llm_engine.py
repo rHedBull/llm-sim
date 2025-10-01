@@ -5,7 +5,8 @@ from typing import Dict
 from llm_sim.infrastructure.patterns.llm_engine import LLMEngine
 from llm_sim.models.action import Action
 from llm_sim.models.llm_models import StateUpdateDecision
-from llm_sim.models.state import SimulationState, GlobalState, AgentState
+from llm_sim.models.state import SimulationState, create_agent_state_model, create_global_state_model
+from llm_sim.models.config import get_variable_definitions
 
 
 class EconLLMEngine(LLMEngine):
@@ -17,26 +18,49 @@ class EconLLMEngine(LLMEngine):
         Returns:
             Initial simulation state
         """
-        agents: Dict[str, AgentState] = {}
+        # Get variable definitions from config
+        agent_var_defs, global_var_defs = get_variable_definitions(self.config)
+
+        # Create dynamic state models
+        AgentState = create_agent_state_model(agent_var_defs)
+        GlobalState = create_global_state_model(global_var_defs)
+
+        # Store models for later use
+        self._agent_state_model = AgentState
+        self._global_state_model = GlobalState
+
+        # Initialize agents
+        agents: Dict[str, any] = {}
         total_value = 0.0
 
         for agent_config in self.config.agents:
-            agents[agent_config.name] = AgentState(
-                name=agent_config.name,
-                economic_strength=agent_config.initial_economic_strength,
-            )
-            total_value += agent_config.initial_economic_strength
+            agent_data = {"name": agent_config.name}
+            if "economic_strength" in agent_var_defs:
+                if agent_config.initial_economic_strength is not None:
+                    agent_data["economic_strength"] = agent_config.initial_economic_strength
+                    total_value += agent_config.initial_economic_strength
+                else:
+                    agent_data["economic_strength"] = agent_var_defs["economic_strength"].default
+                    total_value += agent_var_defs["economic_strength"].default
+            agents[agent_config.name] = AgentState(**agent_data)
+
+        # Initialize global state
+        global_data = {}
+        if "interest_rate" in global_var_defs:
+            global_data["interest_rate"] = self.config.engine.interest_rate
+        if "total_economic_value" in global_var_defs:
+            global_data["total_economic_value"] = total_value
+        if "gdp_growth" in global_var_defs:
+            global_data["gdp_growth"] = 2.5
+        if "inflation" in global_var_defs:
+            global_data["inflation"] = 3.0
+        if "unemployment" in global_var_defs:
+            global_data["unemployment"] = 5.0
 
         state = SimulationState(
             turn=0,
             agents=agents,
-            global_state=GlobalState(
-                interest_rate=self.config.engine.interest_rate,
-                total_economic_value=total_value,
-                gdp_growth=2.5,  # Default initial values
-                inflation=3.0,
-                unemployment=5.0,
-            ),
+            global_state=GlobalState(**global_data),
             reasoning_chains=[]
         )
 
@@ -69,12 +93,12 @@ class EconLLMEngine(LLMEngine):
 
         return False
 
-    def _construct_state_update_prompt(self, action: Action, state: GlobalState) -> str:
+    def _construct_state_update_prompt(self, action: Action, state) -> str:
         """Construct prompt for LLM to calculate new interest rate.
 
         Args:
             action: Validated action to apply
-            state: Current global state
+            state: Current global state (dynamic model)
 
         Returns:
             Prompt for state update calculation

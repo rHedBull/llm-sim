@@ -12,7 +12,7 @@ class TestMultipleSimTypes:
         config = {
             "simulation": {"name": "Economic", "max_turns": 5},
             "engine": {"type": "economic"},
-            "agents": [{"name": "Nation_A"}],
+            "agents": [{"name": "Nation_A", "type": "nation"}],
             "validator": {"type": "always_valid"},
             "state_variables": {
                 "agent_vars": {"gdp": {"type": "float", "default": 1000.0}},
@@ -36,7 +36,7 @@ class TestMultipleSimTypes:
         config = {
             "simulation": {"name": "Military", "max_turns": 5},
             "engine": {"type": "economic"},
-            "agents": [{"name": "Empire_A"}],
+            "agents": [{"name": "Empire_A", "type": "nation"}],
             "validator": {"type": "always_valid"},
             "state_variables": {
                 "agent_vars": {"army_size": {"type": "int", "min": 0, "default": 1000}},

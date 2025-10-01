@@ -3,7 +3,7 @@
 import pytest
 from typing import List
 
-from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.state import SimulationState
 from llm_sim.models.action import Action
 from llm_sim.models.config import (
     SimulationConfig,
@@ -21,7 +21,7 @@ from llm_sim.infrastructure.base.validator import BaseValidator
 class TestBaseEngine:
     """Tests for BaseEngine abstract class."""
 
-    def test_abstract_methods_defined(self) -> None:
+    def test_abstract_methods_defined(self, AgentState, GlobalState) -> None:
         """Test that abstract methods are properly defined."""
         assert hasattr(BaseEngine, "initialize_state")
         assert hasattr(BaseEngine, "apply_actions")
@@ -30,7 +30,7 @@ class TestBaseEngine:
         assert hasattr(BaseEngine, "get_current_state")
         assert hasattr(BaseEngine, "run_turn")
 
-    def test_cannot_instantiate_abstract(self) -> None:
+    def test_cannot_instantiate_abstract(self, AgentState, GlobalState) -> None:
         """Test that abstract class cannot be instantiated."""
         config = SimulationConfig(
             simulation=SimulationSettings(
@@ -45,7 +45,7 @@ class TestBaseEngine:
         with pytest.raises(TypeError):
             BaseEngine(config)  # type: ignore
 
-    def test_concrete_implementation(self) -> None:
+    def test_concrete_implementation(self, AgentState, GlobalState) -> None:
         """Test that concrete implementation works."""
 
         class TestEngine(BaseEngine):
@@ -81,7 +81,7 @@ class TestBaseEngine:
         assert state.turn == 0
         assert "Test" in state.agents
 
-    def test_get_current_state_before_init(self) -> None:
+    def test_get_current_state_before_init(self, AgentState, GlobalState) -> None:
         """Test that get_current_state raises error if not initialized."""
 
         class TestEngine(BaseEngine):
@@ -119,18 +119,18 @@ class TestBaseEngine:
 class TestBaseAgent:
     """Tests for BaseAgent abstract class."""
 
-    def test_abstract_methods_defined(self) -> None:
+    def test_abstract_methods_defined(self, AgentState, GlobalState) -> None:
         """Test that abstract methods are properly defined."""
         assert hasattr(BaseAgent, "decide_action")
         assert hasattr(BaseAgent, "receive_state")
         assert hasattr(BaseAgent, "get_current_state")
 
-    def test_cannot_instantiate_abstract(self) -> None:
+    def test_cannot_instantiate_abstract(self, AgentState, GlobalState) -> None:
         """Test that abstract class cannot be instantiated."""
         with pytest.raises(TypeError):
             BaseAgent("Test")  # type: ignore
 
-    def test_concrete_implementation(self) -> None:
+    def test_concrete_implementation(self, AgentState, GlobalState) -> None:
         """Test that concrete implementation works."""
 
         class TestAgent(BaseAgent):
@@ -162,18 +162,18 @@ class TestBaseAgent:
 class TestBaseValidator:
     """Tests for BaseValidator abstract class."""
 
-    def test_abstract_methods_defined(self) -> None:
+    def test_abstract_methods_defined(self, AgentState, GlobalState) -> None:
         """Test that abstract methods are properly defined."""
         assert hasattr(BaseValidator, "validate_action")
         assert hasattr(BaseValidator, "validate_actions")
         assert hasattr(BaseValidator, "get_stats")
 
-    def test_cannot_instantiate_abstract(self) -> None:
+    def test_cannot_instantiate_abstract(self, AgentState, GlobalState) -> None:
         """Test that abstract class cannot be instantiated."""
         with pytest.raises(TypeError):
             BaseValidator()  # type: ignore
 
-    def test_concrete_implementation(self) -> None:
+    def test_concrete_implementation(self, AgentState, GlobalState) -> None:
         """Test that concrete implementation works."""
 
         class TestValidator(BaseValidator):
@@ -206,7 +206,7 @@ class TestBaseValidator:
         assert stats["total_rejected"] == 0
         assert stats["acceptance_rate"] == 1.0
 
-    def test_rejection_stats(self) -> None:
+    def test_rejection_stats(self, AgentState, GlobalState) -> None:
         """Test that rejection stats work correctly."""
 
         class TestValidator(BaseValidator):

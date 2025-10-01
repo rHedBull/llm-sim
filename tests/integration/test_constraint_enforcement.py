@@ -13,7 +13,7 @@ class TestConstraintEnforcement:
         config = {
             "simulation": {"name": "Test", "max_turns": 5},
             "engine": {"type": "economic"},
-            "agents": [{"name": "Agent"}],
+            "agents": [{"name": "Agent", "type": "nation"}],
             "validator": {"type": "always_valid"},
             "state_variables": {
                 "agent_vars": {"value": {"type": "float", "min": 0, "max": 100, "default": 50.0}},
@@ -36,7 +36,7 @@ class TestConstraintEnforcement:
         config = {
             "simulation": {"name": "Test", "max_turns": 5},
             "engine": {"type": "economic"},
-            "agents": [{"name": "Agent"}],
+            "agents": [{"name": "Agent", "type": "nation"}],
             "validator": {"type": "always_valid"},
             "state_variables": {
                 "agent_vars": {"value": {"type": "float", "min": 0, "max": 100, "default": 50.0}},

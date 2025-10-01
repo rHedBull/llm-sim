@@ -15,7 +15,7 @@ class TestSchemaCompatibility:
         config = {
             "simulation": {"name": "Test", "max_turns": 10},
             "engine": {"type": "economic"},
-            "agents": [{"name": "Agent"}],
+            "agents": [{"name": "Agent", "type": "nation"}],
             "validator": {"type": "always_valid"},
             "state_variables": {
                 "agent_vars": {"gdp": {"type": "float", "default": 1000.0}},
@@ -28,11 +28,11 @@ class TestSchemaCompatibility:
             yaml.dump(config, f)
 
         loaded = load_config(config_path)
-        orch = Orchestrator(loaded, output_dir=tmp_path)
+        orch = Orchestrator(loaded, output_root=tmp_path)
         state = orch.initialize()
 
-        mgr = CheckpointManager(output_dir=tmp_path, run_id="test")
-        checkpoint_path = mgr.save(state, loaded)
+        # Checkpoint manager is already initialized by orchestrator
+        checkpoint_path = orch.checkpoint_manager.save_checkpoint(state, "interval")
 
         assert checkpoint_path.exists()
         return checkpoint_path
@@ -43,7 +43,7 @@ class TestSchemaCompatibility:
         config_x = {
             "simulation": {"name": "Test", "max_turns": 10},
             "engine": {"type": "economic"},
-            "agents": [{"name": "Agent"}],
+            "agents": [{"name": "Agent", "type": "nation"}],
             "validator": {"type": "always_valid"},
             "state_variables": {
                 "agent_vars": {"gdp": {"type": "float", "default": 1000.0}},
@@ -56,17 +56,19 @@ class TestSchemaCompatibility:
             yaml.dump(config_x, f)
 
         loaded_x = load_config(config_path)
-        orch = Orchestrator(loaded_x, output_dir=tmp_path)
-        state = orch.initialize()
+        orch_x = Orchestrator(loaded_x, output_root=tmp_path)
+        state = orch_x.initialize()
 
-        mgr = CheckpointManager(output_dir=tmp_path, run_id="test")
-        checkpoint_path = mgr.save(state, loaded_x)
+        # Save checkpoint with schema X
+        checkpoint_path = orch_x.checkpoint_manager.save_checkpoint(state, "interval")
+        turn_num = state.turn
+        run_id = orch_x.run_id
 
         # Modify config to schema Y (different variables)
         config_y = {
             "simulation": {"name": "Test", "max_turns": 10},
             "engine": {"type": "economic"},
-            "agents": [{"name": "Agent"}],
+            "agents": [{"name": "Agent", "type": "nation"}],
             "validator": {"type": "always_valid"},
             "state_variables": {
                 "agent_vars": {"population": {"type": "int", "default": 1000000}},  # Different var
@@ -78,11 +80,14 @@ class TestSchemaCompatibility:
             yaml.dump(config_y, f)
 
         loaded_y = load_config(config_path)
+        orch_y = Orchestrator(loaded_y, output_root=tmp_path)
 
         # Attempt to load checkpoint with mismatched schema
+        # This should raise SchemaCompatibilityError because schema_hash differs
+        from llm_sim.persistence.exceptions import SchemaCompatibilityError
         with pytest.raises(SchemaCompatibilityError) as exc_info:
-            mgr.load(checkpoint_path, loaded_y)
+            orch_y.checkpoint_manager.load_checkpoint(run_id, turn_num, validate_schema=True)
 
         # Check error message explains mismatch
         error_msg = str(exc_info.value).lower()
-        assert "schema" in error_msg or "mismatch" in error_msg or "compatibility" in error_msg
+        assert "schema" in error_msg

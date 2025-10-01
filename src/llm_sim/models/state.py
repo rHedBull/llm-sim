@@ -1,43 +1,40 @@
 """State models for the simulation."""
 
 from typing import Any, Dict, List, Type, get_args
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import BaseModel, ConfigDict, Field, create_model, field_serializer
 
 from llm_sim.models.llm_models import LLMReasoningChain
 from llm_sim.models.config import VariableDefinition
 
 
-class AgentState(BaseModel):
-    """State of an individual agent."""
-
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    economic_strength: float
-
-
-class GlobalState(BaseModel):
-    """Global simulation state."""
-
-    model_config = ConfigDict(frozen=True)
-
-    interest_rate: float
-    total_economic_value: float = 0.0  # Default for backward compatibility
-    # Additional economic indicators
-    gdp_growth: float = 0.0
-    inflation: float = 0.0
-    unemployment: float = 0.0
+# NOTE: AgentState and GlobalState are now created dynamically using factory functions
+# create_agent_state_model() and create_global_state_model() below.
+# The old hardcoded classes have been removed to support configuration-driven variables.
 
 
 class SimulationState(BaseModel):
-    """Complete simulation state."""
+    """Complete simulation state.
 
-    model_config = ConfigDict(frozen=True)
+    Note: agents and global_state fields accept dynamically created models
+    from create_agent_state_model() and create_global_state_model().
+    """
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     turn: int
-    agents: Dict[str, AgentState]
-    global_state: GlobalState
+    agents: Dict[str, BaseModel]  # Values are dynamically created AgentState instances
+    global_state: BaseModel  # Dynamically created GlobalState instance
     reasoning_chains: List[LLMReasoningChain] = Field(default_factory=list)
+
+    @field_serializer('agents')
+    def serialize_agents(self, agents: Dict[str, BaseModel], _info):
+        """Serialize agents dict properly."""
+        return {name: agent.model_dump() for name, agent in agents.items()}
+
+    @field_serializer('global_state')
+    def serialize_global_state(self, global_state: BaseModel, _info):
+        """Serialize global_state properly."""
+        return global_state.model_dump()
 
 
 def create_agent_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[BaseModel]:
