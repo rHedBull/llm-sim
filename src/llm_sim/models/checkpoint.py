@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator
+import re
 
 from llm_sim.models.state import SimulationState
 
@@ -35,6 +36,23 @@ class RunMetadata(BaseModel):
         """Validate num_agents is positive."""
         if v <= 0:
             raise ValueError("num_agents must be greater than 0")
+        return v
+
+
+class CheckpointMetadata(BaseModel):
+    """Metadata for checkpoint files (extended with schema_hash)."""
+
+    run_id: str
+    turn: int
+    timestamp: str  # ISO 8601 format
+    schema_hash: str
+
+    @field_validator("schema_hash")
+    @classmethod
+    def validate_schema_hash_format(cls, v: str) -> str:
+        """Validate schema_hash is 64-character hex (SHA-256)."""
+        if not re.match(r"^[0-9a-f]{64}$", v):
+            raise ValueError("schema_hash must be 64-character hex string")
         return v
 
 

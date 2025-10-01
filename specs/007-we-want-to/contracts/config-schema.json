@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-sim/schemas/state-variables-config.json",
+  "title": "State Variables Configuration Schema",
+  "description": "JSON Schema for validating YAML simulation config with state_variables section",
+  "type": "object",
+  "properties": {
+    "simulation": {
+      "type": "object",
+      "description": "Existing simulation settings (not modified by this feature)"
+    },
+    "engine": {
+      "type": "object",
+      "description": "Existing engine settings (not modified by this feature)"
+    },
+    "agents": {
+      "type": "array",
+      "description": "Existing agent configurations (not modified by this feature)"
+    },
+    "validator": {
+      "type": "object",
+      "description": "Existing validator settings (not modified by this feature)"
+    },
+    "logging": {
+      "type": "object",
+      "description": "Existing logging settings (not modified by this feature)"
+    },
+    "llm": {
+      "type": "object",
+      "description": "Existing LLM settings (not modified by this feature)"
+    },
+    "state_variables": {
+      "type": "object",
+      "description": "Variable definitions for agent and global state (NEW)",
+      "properties": {
+        "agent_vars": {
+          "type": "object",
+          "description": "Per-agent state variable definitions",
+          "additionalProperties": {
+            "$ref": "#/definitions/VariableDefinition"
+          }
+        },
+        "global_vars": {
+          "type": "object",
+          "description": "Global (world-level) state variable definitions",
+          "additionalProperties": {
+            "$ref": "#/definitions/VariableDefinition"
+          }
+        }
+      },
+      "required": ["agent_vars", "global_vars"],
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "VariableDefinition": {
+      "type": "object",
+      "description": "Definition of a single state variable",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["float", "int", "bool", "categorical"],
+          "description": "Variable data type"
+        },
+        "min": {
+          "type": "number",
+          "description": "Minimum value (for float/int types only)"
+        },
+        "max": {
+          "type": "number",
+          "description": "Maximum value (for float/int types only)"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Allowed values (for categorical type only)"
+        },
+        "default": {
+          "description": "Default/initial value for the variable",
+          "oneOf": [
+            {"type": "number"},
+            {"type": "boolean"},
+            {"type": "string"}
+          ]
+        }
+      },
+      "required": ["type", "default"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {"const": "categorical"}
+            }
+          },
+          "then": {
+            "required": ["values"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {"enum": ["float", "int"]}
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {"type": "number"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {"const": "bool"}
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {"type": "boolean"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {"const": "categorical"}
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {"type": "string"}
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}
