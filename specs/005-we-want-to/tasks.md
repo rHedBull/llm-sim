@@ -114,84 +114,84 @@
 
 ### Move Abstract Base Classes
 
-- [ ] **T013 [P]** Move BaseAgent to `src/llm_sim/infrastructure/base/agent.py`
+- [x] **T013 [P]** Move BaseAgent to `src/llm_sim/infrastructure/base/agent.py`
   - Copy `src/llm_sim/agents/base.py` → `src/llm_sim/infrastructure/base/agent.py`
   - Update imports in new location (if any internal imports)
   - Keep original file for now (will delete later)
 
-- [ ] **T014 [P]** Move BaseEngine to `src/llm_sim/infrastructure/base/engine.py`
+- [x] **T014 [P]** Move BaseEngine to `src/llm_sim/infrastructure/base/engine.py`
   - Copy `src/llm_sim/engines/base.py` → `src/llm_sim/infrastructure/base/engine.py`
   - Update imports in new location
   - Keep original file for now
 
-- [ ] **T015 [P]** Move BaseValidator to `src/llm_sim/infrastructure/base/validator.py`
+- [x] **T015 [P]** Move BaseValidator to `src/llm_sim/infrastructure/base/validator.py`
   - Copy `src/llm_sim/validators/base.py` → `src/llm_sim/infrastructure/base/validator.py`
   - Update imports in new location
   - Keep original file for now
 
 ### Move LLM Pattern Classes
 
-- [ ] **T016 [P]** Move LLMAgent to `src/llm_sim/infrastructure/patterns/llm_agent.py`
+- [x] **T016 [P]** Move LLMAgent to `src/llm_sim/infrastructure/patterns/llm_agent.py`
   - Copy `src/llm_sim/agents/llm_agent.py` → `src/llm_sim/infrastructure/patterns/llm_agent.py`
   - Update import: `from llm_sim.agents.base import BaseAgent` → `from llm_sim.infrastructure.base.agent import BaseAgent`
   - Keep original file for now
 
-- [ ] **T017 [P]** Move LLMEngine to `src/llm_sim/infrastructure/patterns/llm_engine.py`
+- [x] **T017 [P]** Move LLMEngine to `src/llm_sim/infrastructure/patterns/llm_engine.py`
   - Copy `src/llm_sim/engines/llm_engine.py` → `src/llm_sim/infrastructure/patterns/llm_engine.py`
   - Update import: `from llm_sim.engines.base import BaseEngine` → `from llm_sim.infrastructure.base.engine import BaseEngine`
   - Keep original file for now
 
-- [ ] **T018 [P]** Move LLMValidator to `src/llm_sim/infrastructure/patterns/llm_validator.py`
+- [x] **T018 [P]** Move LLMValidator to `src/llm_sim/infrastructure/patterns/llm_validator.py`
   - Copy `src/llm_sim/validators/llm_validator.py` → `src/llm_sim/infrastructure/patterns/llm_validator.py`
   - Update import: `from llm_sim.validators.base import BaseValidator` → `from llm_sim.infrastructure.base.validator import BaseValidator`
   - Keep original file for now
 
 ### Move Concrete Implementations
 
-- [ ] **T019 [P]** Move EconLLMAgent to `src/llm_sim/implementations/agents/econ_llm_agent.py`
+- [x] **T019 [P]** Move EconLLMAgent to `src/llm_sim/implementations/agents/econ_llm_agent.py`
   - Copy `src/llm_sim/agents/econ_llm_agent.py` → `src/llm_sim/implementations/agents/econ_llm_agent.py`
   - Update import: `from llm_sim.agents.llm_agent import LLMAgent` → `from llm_sim.infrastructure.patterns.llm_agent import LLMAgent`
   - Keep original file for now
 
-- [ ] **T020 [P]** Move NationAgent to `src/llm_sim/implementations/agents/nation.py`
+- [x] **T020 [P]** Move NationAgent to `src/llm_sim/implementations/agents/nation.py`
   - Copy `src/llm_sim/agents/nation.py` → `src/llm_sim/implementations/agents/nation.py`
   - Update import: `from llm_sim.agents.base import BaseAgent` → `from llm_sim.infrastructure.base.agent import BaseAgent`
   - Keep original file for now
 
-- [ ] **T021 [P]** Move EconLLMEngine to `src/llm_sim/implementations/engines/econ_llm_engine.py`
+- [x] **T021 [P]** Move EconLLMEngine to `src/llm_sim/implementations/engines/econ_llm_engine.py`
   - Copy `src/llm_sim/engines/econ_llm_engine.py` → `src/llm_sim/implementations/engines/econ_llm_engine.py`
   - Update import: `from llm_sim.engines.llm_engine import LLMEngine` → `from llm_sim.infrastructure.patterns.llm_engine import LLMEngine`
   - Keep original file for now
 
-- [ ] **T022 [P]** Move EconomicEngine to `src/llm_sim/implementations/engines/economic.py`
+- [x] **T022 [P]** Move EconomicEngine to `src/llm_sim/implementations/engines/economic.py`
   - Copy `src/llm_sim/engines/economic.py` → `src/llm_sim/implementations/engines/economic.py`
   - Update imports to new infrastructure paths
   - Keep original file for now
 
-- [ ] **T023 [P]** Move EconLLMValidator to `src/llm_sim/implementations/validators/econ_llm_validator.py`
+- [x] **T023 [P]** Move EconLLMValidator to `src/llm_sim/implementations/validators/econ_llm_validator.py`
   - Copy `src/llm_sim/validators/econ_llm_validator.py` → `src/llm_sim/implementations/validators/econ_llm_validator.py`
   - Update import: `from llm_sim.validators.llm_validator import LLMValidator` → `from llm_sim.infrastructure.patterns.llm_validator import LLMValidator`
   - Keep original file for now
 
-- [ ] **T024 [P]** Move AlwaysValidValidator to `src/llm_sim/implementations/validators/always_valid.py`
+- [x] **T024 [P]** Move AlwaysValidValidator to `src/llm_sim/implementations/validators/always_valid.py`
   - Copy `src/llm_sim/validators/always_valid.py` → `src/llm_sim/implementations/validators/always_valid.py`
   - Update import: `from llm_sim.validators.base import BaseValidator` → `from llm_sim.infrastructure.base.validator import BaseValidator`
   - Keep original file for now
 
 ### Update __init__.py Files
 
-- [ ] **T025 [P]** Create convenience imports in `src/llm_sim/infrastructure/__init__.py`
+- [x] **T025 [P]** Create convenience imports in `src/llm_sim/infrastructure/__init__.py`
   - Re-export BaseAgent, BaseEngine, BaseValidator
   - Re-export LLMAgent, LLMEngine, LLMValidator
   - Allow: `from llm_sim.infrastructure import BaseAgent`
 
-- [ ] **T026 [P]** Update `src/llm_sim/implementations/agents/__init__.py`
+- [x] **T026 [P]** Update `src/llm_sim/implementations/agents/__init__.py`
   - Empty for now (discovery handles imports)
 
-- [ ] **T027 [P]** Update `src/llm_sim/implementations/engines/__init__.py`
+- [x] **T027 [P]** Update `src/llm_sim/implementations/engines/__init__.py`
   - Empty for now (discovery handles imports)
 
-- [ ] **T028 [P]** Update `src/llm_sim/implementations/validators/__init__.py`
+- [x] **T028 [P]** Update `src/llm_sim/implementations/validators/__init__.py`
   - Empty for now (discovery handles imports)
 
 ## Phase 3.4: Discovery Mechanism Implementation
@@ -219,48 +219,48 @@
 
 ## Phase 3.5: Test Updates (Update existing tests to new paths)
 
-- [ ] **T031** Update agent test imports in `tests/unit/test_base_interfaces.py`
+- [x] **T031** Update agent test imports in `tests/unit/test_base_interfaces.py`
   - Update BaseAgent import to new path
   - Run test to verify still passes
 
-- [ ] **T032** Update engine test imports in `tests/unit/test_economic_engine.py`
+- [x] **T032** Update engine test imports in `tests/unit/test_economic_engine.py`
   - Update BaseEngine import to new path
   - Run test to verify still passes
 
-- [ ] **T033** Update validator test imports in `tests/unit/test_always_valid_validator.py`
+- [x] **T033** Update validator test imports in `tests/unit/test_always_valid_validator.py`
   - Update BaseValidator import to new path
   - Run test to verify still passes
 
-- [ ] **T034** Update nation agent test imports in `tests/unit/test_nation_agent.py`
+- [x] **T034** Update nation agent test imports in `tests/unit/test_nation_agent.py`
   - Update NationAgent import to new path
   - Run test to verify still passes
 
-- [ ] **T035** Update integration test imports in `tests/integration/test_simulation.py`
+- [x] **T035** Update integration test imports in `tests/integration/test_simulation.py`
   - Update all agent/engine/validator imports to new paths
   - Run test to verify still passes
 
-- [ ] **T036** Update all contract test imports
+- [x] **T036** Update all contract test imports
   - Update imports in all tests/contract/ files
   - Ensure tests reference new infrastructure paths
   - Run contract tests to verify interfaces unchanged
 
 ## Phase 3.6: Cleanup & Finalization
 
-- [ ] **T037** Delete old agent files after verification
+- [x] **T037** Delete old agent files after verification
   - Delete `src/llm_sim/agents/base.py`
   - Delete `src/llm_sim/agents/llm_agent.py`
   - Delete `src/llm_sim/agents/econ_llm_agent.py`
   - Delete `src/llm_sim/agents/nation.py`
   - Keep `src/llm_sim/agents/__init__.py` but make it empty/deprecated marker
 
-- [ ] **T038** Delete old engine files after verification
+- [x] **T038** Delete old engine files after verification
   - Delete `src/llm_sim/engines/base.py`
   - Delete `src/llm_sim/engines/llm_engine.py`
   - Delete `src/llm_sim/engines/econ_llm_engine.py`
   - Delete `src/llm_sim/engines/economic.py`
   - Keep `src/llm_sim/engines/__init__.py` but make it empty/deprecated marker
 
-- [ ] **T039** Delete old validator files after verification
+- [x] **T039** Delete old validator files after verification
   - Delete `src/llm_sim/validators/base.py`
   - Delete `src/llm_sim/validators/llm_validator.py`
   - Delete `src/llm_sim/validators/econ_llm_validator.py`
@@ -269,26 +269,26 @@
 
 ## Phase 3.7: Documentation
 
-- [ ] **T040 [P]** Create base classes documentation in `docs/patterns/base_classes.md`
+- [x] **T040 [P]** Create base classes documentation in `docs/patterns/base_classes.md`
   - Document BaseAgent interface and usage
   - Document BaseEngine interface and usage
   - Document BaseValidator interface and usage
   - Include examples of extending each
 
-- [ ] **T041 [P]** Create LLM pattern documentation in `docs/patterns/llm_pattern.md`
+- [x] **T041 [P]** Create LLM pattern documentation in `docs/patterns/llm_pattern.md`
   - Document LLMAgent pattern and usage
   - Document LLMEngine pattern and usage
   - Document LLMValidator pattern and usage
   - Include examples and best practices
 
-- [ ] **T042 [P]** Create implementation guide in `docs/patterns/creating_implementations.md`
+- [x] **T042 [P]** Create implementation guide in `docs/patterns/creating_implementations.md`
   - Explain directory structure
   - Explain naming conventions (snake_case → PascalCase)
   - Explain discovery mechanism
   - Include quickstart example
   - Document common pitfalls
 
-- [ ] **T043 [P]** Create migration guide in `docs/MIGRATION.md`
+- [x] **T043 [P]** Create migration guide in `docs/MIGRATION.md`
   - Document old → new import paths
   - Provide migration steps for users
   - Include example diff showing changes
@@ -296,27 +296,27 @@
 
 ## Phase 3.8: Final Validation
 
-- [ ] **T044** Run full test suite with pytest
+- [x] **T044** Run full test suite with pytest
   - Run: `pytest tests/ -v`
   - Ensure all tests pass
   - Verify no import errors
 
-- [ ] **T045** Test backward compatibility with existing YAML config
+- [x] **T045** Test backward compatibility with existing YAML config
   - Run simulation with existing config file
   - Verify output matches pre-reorganization behavior
   - Test with all sample configs
 
-- [ ] **T046** Verify discovery mechanism with manual test
+- [x] **T046** Verify discovery mechanism with manual test
   - Manually call `discovery.list_agents()` and verify all found
   - Manually load each implementation type
   - Verify error messages for invalid cases
 
-- [ ] **T047** Run linting and type checking
+- [x] **T047** Run linting and type checking
   - Run: `ruff check src/`
   - Run: `mypy src/`
   - Fix any issues found
 
-- [ ] **T048** Performance validation
+- [x] **T048** Performance validation
   - Benchmark simulation runtime before/after
   - Ensure no degradation (< 5% overhead acceptable)
   - Profile discovery mechanism if needed

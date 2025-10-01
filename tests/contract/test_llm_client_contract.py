@@ -1,4 +1,5 @@
 """
+from llm_sim.models.state import GlobalState
 Contract tests for LLMClient utility.
 
 These tests validate the interface and behavior of the LLM client,

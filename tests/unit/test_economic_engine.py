@@ -12,7 +12,7 @@ from llm_sim.models.config import (
     ValidatorConfig,
     LoggingConfig,
 )
-from llm_sim.engines.economic import EconomicEngine
+from llm_sim.implementations.engines.economic import EconomicEngine
 
 
 class TestEconomicEngine:

@@ -6,7 +6,7 @@ to dynamically load concrete implementations of agents, engines, and validators.
 
 import importlib.util
 from pathlib import Path
-from typing import Type, List, Dict, Optional
+from typing import Type, List, Dict
 from types import ModuleType
 
 from llm_sim.infrastructure.base.agent import BaseAgent

@@ -32,7 +32,7 @@ agents:
 
 engine:
   type: "economic"
-  interest_rate: 5.0
+  interest_rate: 0.05
 
 validator:
   type: "always_valid"
@@ -68,7 +68,7 @@ agents:
 
 engine:
   type: "economic"
-  interest_rate: 5.0
+  interest_rate: 0.05
 
 validator:
   type: "always_valid"
@@ -143,7 +143,7 @@ agents:
 
 engine:
   type: "economic"
-  interest_rate: 5.0
+  interest_rate: 0.05
 
 validator:
   type: "always_valid"
@@ -154,8 +154,9 @@ validator:
         orchestrator = SimulationOrchestrator.from_yaml(str(config_file))
         
         # Run simulation
-        final_state = orchestrator.run()
-        
+        result = orchestrator.run()
+        final_state = result if hasattr(result, 'turn') else result['final_state']
+
         # Verify we got a final state
         assert final_state is not None
         assert final_state.turn >= 0

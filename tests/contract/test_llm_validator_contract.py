@@ -47,8 +47,12 @@ class TestLLMValidatorContract:
 
     def test_concrete_implementation_can_be_instantiated(self):
         """A concrete class implementing all abstract methods can be instantiated."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+        from llm_sim.models.action import LLMAction
+
         class ConcreteLLMValidator(LLMValidator):
-            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+            def _construct_validation_prompt(self, action: LLMAction, state: SimulationState) -> str:
                 return "validate these actions"
 
             def _get_domain_description(self) -> str:
@@ -57,7 +61,9 @@ class TestLLMValidatorContract:
             def validate_action(self, action: Action, state: SimulationState) -> bool:
                 return True
 
-        validator = ConcreteLLMValidator(model="test_model")
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        validator = ConcreteLLMValidator(llm_client=client, domain="test")
         assert isinstance(validator, LLMValidator)
         assert isinstance(validator, BaseValidator)
 
@@ -93,8 +99,12 @@ class TestLLMValidatorContract:
 
     def test_concrete_implementation_preserves_model_attribute(self):
         """Concrete implementation should properly initialize model attribute."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+        from llm_sim.models.action import LLMAction
+
         class ConcreteLLMValidator(LLMValidator):
-            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+            def _construct_validation_prompt(self, action: LLMAction, state: SimulationState) -> str:
                 return "validate"
 
             def _get_domain_description(self) -> str:
@@ -103,14 +113,20 @@ class TestLLMValidatorContract:
             def validate_action(self, action: Action, state: SimulationState) -> bool:
                 return True
 
-        validator = ConcreteLLMValidator(model="gpt-4")
-        assert hasattr(validator, 'model')
-        assert validator.model == "gpt-4"
+        llm_config = LLMConfig(model="gpt-4", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        validator = ConcreteLLMValidator(llm_client=client, domain="test")
+        assert hasattr(validator, 'llm_client')
+        assert validator.llm_client.config.model == "gpt-4"
 
     def test_llm_validator_has_client_attribute(self):
         """LLMValidator should have a client attribute for LLM communication."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+        from llm_sim.models.action import LLMAction
+
         class ConcreteLLMValidator(LLMValidator):
-            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+            def _construct_validation_prompt(self, action: LLMAction, state: SimulationState) -> str:
                 return "validate"
 
             def _get_domain_description(self) -> str:
@@ -119,13 +135,19 @@ class TestLLMValidatorContract:
             def validate_action(self, action: Action, state: SimulationState) -> bool:
                 return True
 
-        validator = ConcreteLLMValidator(model="test_model")
-        assert hasattr(validator, 'client')
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        validator = ConcreteLLMValidator(llm_client=client, domain="test")
+        assert hasattr(validator, 'llm_client')
 
     def test_llm_validator_inherits_stats_tracking(self):
         """LLMValidator should inherit validation_count and rejection_count from BaseValidator."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+        from llm_sim.models.action import LLMAction
+
         class ConcreteLLMValidator(LLMValidator):
-            def _construct_validation_prompt(self, actions: List[Action], state: SimulationState) -> str:
+            def _construct_validation_prompt(self, action: LLMAction, state: SimulationState) -> str:
                 return "validate"
 
             def _get_domain_description(self) -> str:
@@ -134,6 +156,8 @@ class TestLLMValidatorContract:
             def validate_action(self, action: Action, state: SimulationState) -> bool:
                 return True
 
-        validator = ConcreteLLMValidator(model="test_model")
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        validator = ConcreteLLMValidator(llm_client=client, domain="test")
         assert hasattr(validator, 'validation_count')
         assert hasattr(validator, 'rejection_count')

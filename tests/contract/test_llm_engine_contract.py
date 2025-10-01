@@ -49,12 +49,16 @@ class TestLLMEngineContract:
 
     def test_concrete_implementation_can_be_instantiated(self, mock_config):
         """A concrete class implementing all abstract methods can be instantiated."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+        from llm_sim.models.llm_models import StateUpdateDecision
+
         class ConcreteLLMEngine(LLMEngine):
             def initialize_state(self) -> SimulationState:
                 return SimulationState(turn=0, agents={}, global_state=GlobalState(interest_rate=0.05))
 
             def apply_actions(self, actions: List[Action]) -> SimulationState:
-                return self._state
+                return self.current_state
 
             def apply_engine_rules(self, state: SimulationState) -> SimulationState:
                 return state
@@ -62,14 +66,16 @@ class TestLLMEngineContract:
             def check_termination(self, state: SimulationState) -> bool:
                 return False
 
-            def _construct_state_update_prompt(self, actions: List[Action]) -> str:
+            def _construct_state_update_prompt(self, action: Action, state) -> str:
                 return "test prompt"
 
-            def _apply_state_update(self, update_text: str) -> SimulationState:
-                return self._state
+            def _apply_state_update(self, decision: StateUpdateDecision, state: SimulationState) -> SimulationState:
+                return state
 
         # Using fixture
-        engine = ConcreteLLMEngine(config=mock_config)
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        engine = ConcreteLLMEngine(config=mock_config, llm_client=client)
         assert isinstance(engine, LLMEngine)
         assert isinstance(engine, BaseEngine)
 
@@ -102,12 +108,16 @@ class TestLLMEngineContract:
 
     def test_concrete_implementation_preserves_model_attribute(self, mock_config):
         """Concrete implementation should have access to model from config."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+        from llm_sim.models.llm_models import StateUpdateDecision
+
         class ConcreteLLMEngine(LLMEngine):
             def initialize_state(self) -> SimulationState:
                 return SimulationState(turn=0, agents={}, global_state=GlobalState(interest_rate=0.05))
 
             def apply_actions(self, actions: List[Action]) -> SimulationState:
-                return self._state
+                return self.current_state
 
             def apply_engine_rules(self, state: SimulationState) -> SimulationState:
                 return state
@@ -115,12 +125,14 @@ class TestLLMEngineContract:
             def check_termination(self, state: SimulationState) -> bool:
                 return False
 
-            def _construct_state_update_prompt(self, actions: List[Action]) -> str:
+            def _construct_state_update_prompt(self, action: Action, state) -> str:
                 return "test prompt"
 
-            def _apply_state_update(self, update_text: str) -> SimulationState:
-                return self._state
+            def _apply_state_update(self, decision: StateUpdateDecision, state: SimulationState) -> SimulationState:
+                return state
 
         # Using fixture
-        engine = ConcreteLLMEngine(config=mock_config)
-        assert hasattr(engine, 'client')
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        engine = ConcreteLLMEngine(config=mock_config, llm_client=client)
+        assert hasattr(engine, 'llm_client')

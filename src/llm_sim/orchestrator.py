@@ -59,7 +59,10 @@ class SimulationOrchestrator:
 
     def _configure_logging(self) -> None:
         """Configure logging based on config."""
-        configure_logging(level=self.config.logging.level, format=self.config.logging.format)
+        if self.config.logging:
+            configure_logging(level=self.config.logging.level, format=self.config.logging.format)
+        else:
+            configure_logging(level="INFO", format="json")
 
     def _create_engine(self):
         """Create engine based on configuration using discovery mechanism.
@@ -114,7 +117,7 @@ class SimulationOrchestrator:
             elif hasattr(agent_config, "strategy"):
                 init_params["strategy"] = agent_config.strategy
 
-            # Add LLM client if available (for LLM-based agents)
+            # Try with LLM client first (for LLM-based agents)
             if llm_client:
                 try:
                     agent = AgentClass(**init_params, llm_client=llm_client)
@@ -124,9 +127,17 @@ class SimulationOrchestrator:
                     # Agent doesn't take llm_client parameter
                     pass
 
-            # Fall back to basic initialization
-            agent = AgentClass(**init_params)
-            agents.append(agent)
+            # Try without LLM client
+            try:
+                agent = AgentClass(**init_params)
+                agents.append(agent)
+            except TypeError:
+                # Agent requires llm_client but we don't have one - create default
+                from llm_sim.models.config import LLMConfig
+                if not llm_client:
+                    llm_client = LLMClient(config=LLMConfig())
+                agent = AgentClass(**init_params, llm_client=llm_client)
+                agents.append(agent)
 
         return agents
 

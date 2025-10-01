@@ -29,7 +29,7 @@ agents:
 
 engine:
   type: "economic"
-  interest_rate: 5.0
+  interest_rate: 0.05
 
 validator:
   type: "always_valid"
@@ -94,7 +94,7 @@ agents:
 
 engine:
   type: "economic"
-  interest_rate: 5.0
+  interest_rate: 0.05
 
 validator:
   type: "always_valid"
@@ -104,11 +104,13 @@ validator:
         
         # Run twice and compare
         orchestrator1 = SimulationOrchestrator.from_yaml(str(config_file))
-        final_state1 = orchestrator1.run()
-        
+        result1 = orchestrator1.run()
+        final_state1 = result1 if hasattr(result1, 'turn') else result1['final_state']
+
         orchestrator2 = SimulationOrchestrator.from_yaml(str(config_file))
-        final_state2 = orchestrator2.run()
-        
+        result2 = orchestrator2.run()
+        final_state2 = result2 if hasattr(result2, 'turn') else result2['final_state']
+
         # Results should be consistent (deterministic simulation)
         assert final_state1.turn == final_state2.turn
         assert final_state1.agents.keys() == final_state2.agents.keys()
@@ -172,4 +174,5 @@ validator:
         # Validator stats should still be accessible
         stats = orchestrator.validator.get_stats()
         assert isinstance(stats, dict)
-        assert 'validation_count' in stats or 'validations' in stats.values()
+        # Check for either validation_count key or total_validated value
+        assert 'validation_count' in stats or 'total_validated' in stats

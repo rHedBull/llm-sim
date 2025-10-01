@@ -1,4 +1,5 @@
 """Pytest configuration for contract tests."""
+from llm_sim.models.state import GlobalState
 
 import logging
 import structlog

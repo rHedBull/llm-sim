@@ -4,7 +4,7 @@ from datetime import datetime
 
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
 from llm_sim.models.action import Action
-from llm_sim.validators.always_valid import AlwaysValidValidator
+from llm_sim.implementations.validators.always_valid import AlwaysValidValidator
 
 
 class TestAlwaysValidValidator:

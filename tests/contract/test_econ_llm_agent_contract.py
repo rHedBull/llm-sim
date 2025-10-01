@@ -1,4 +1,5 @@
 """
+from llm_sim.models.state import GlobalState
 Contract tests for EconLLMAgent concrete implementation.
 
 These tests validate the economic domain-specific implementation
@@ -12,7 +13,7 @@ from unittest.mock import AsyncMock
 
 # These imports will fail until implementation is complete
 try:
-    from llm_sim.agents.econ_llm_agent import EconLLMAgent
+    from llm_sim.implementations.agents.econ_llm_agent import EconLLMAgent
     from llm_sim.models.llm_models import PolicyDecision
     from llm_sim.models.state import SimulationState, GlobalState
 except ImportError:

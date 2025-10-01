@@ -13,9 +13,9 @@ from llm_sim.models.config import (
     ValidatorConfig,
     LoggingConfig,
 )
-from llm_sim.engines.base import BaseEngine
-from llm_sim.agents.base import BaseAgent
-from llm_sim.validators.base import BaseValidator
+from llm_sim.infrastructure.base.engine import BaseEngine
+from llm_sim.infrastructure.base.agent import BaseAgent
+from llm_sim.infrastructure.base.validator import BaseValidator
 
 
 class TestBaseEngine:

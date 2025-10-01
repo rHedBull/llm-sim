@@ -1,4 +1,5 @@
 """
+from llm_sim.models.state import GlobalState
 Contract tests for EconLLMEngine concrete implementation.
 
 These tests validate the economic domain-specific state update logic,
@@ -12,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 # These imports will fail until implementation is complete
 try:
-    from llm_sim.engines.econ_llm_engine import EconLLMEngine
+    from llm_sim.implementations.engines.econ_llm_engine import EconLLMEngine
     from llm_sim.models.llm_models import StateUpdateDecision
     from llm_sim.models.action import Action
     from llm_sim.models.state import SimulationState, GlobalState

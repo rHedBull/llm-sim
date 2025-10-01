@@ -1,4 +1,5 @@
 """
+from llm_sim.models.state import GlobalState
 Contract tests for EconLLMValidator concrete implementation.
 
 These tests validate the economic domain-specific validation logic,
@@ -12,7 +13,7 @@ from unittest.mock import AsyncMock
 
 # These imports will fail until implementation is complete
 try:
-    from llm_sim.validators.econ_llm_validator import EconLLMValidator
+    from llm_sim.implementations.validators.econ_llm_validator import EconLLMValidator
     from llm_sim.models.llm_models import ValidationResult
     from llm_sim.models.action import Action, LLMAction
     from llm_sim.models.state import SimulationState, GlobalState

@@ -16,7 +16,7 @@ class SimulationSettings(BaseModel):
 
     name: str
     max_turns: int
-    termination: TerminationConditions
+    termination: Optional[TerminationConditions] = None
 
     @field_validator("max_turns")
     @classmethod
@@ -31,13 +31,13 @@ class EngineConfig(BaseModel):
     """Engine configuration."""
 
     type: str
-    interest_rate: float
+    interest_rate: Optional[float] = 0.05
 
     @field_validator("interest_rate")
     @classmethod
-    def validate_interest_rate(cls, v: float) -> float:
+    def validate_interest_rate(cls, v: Optional[float]) -> Optional[float]:
         """Validate interest rate is within bounds."""
-        if not -1.0 <= v <= 1.0:
+        if v is not None and not -1.0 <= v <= 1.0:
             raise ValueError("interest_rate must be between -1.0 and 1.0")
         return v
 
@@ -83,7 +83,7 @@ class SimulationConfig(BaseModel):
     engine: EngineConfig
     agents: List[AgentConfig]
     validator: ValidatorConfig
-    logging: LoggingConfig
+    logging: Optional[LoggingConfig] = None  # Optional for backward compatibility
     llm: Optional[LLMConfig] = None  # Optional for backward compatibility
 
     @model_validator(mode="after")

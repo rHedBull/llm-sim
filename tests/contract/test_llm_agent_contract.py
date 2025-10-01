@@ -48,6 +48,9 @@ class TestLLMAgentContract:
 
     def test_concrete_implementation_can_be_instantiated(self):
         """A concrete class implementing both abstract methods can be instantiated."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+
         class ConcreteLLMAgent(LLMAgent):
             def _construct_prompt(self, state: SimulationState) -> str:
                 return "test prompt"
@@ -55,7 +58,9 @@ class TestLLMAgentContract:
             def _validate_decision(self, decision: PolicyDecision) -> bool:
                 return True
 
-        agent = ConcreteLLMAgent(name="test_agent", model="test_model")
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        agent = ConcreteLLMAgent(name="test_agent", llm_client=client)
         assert isinstance(agent, LLMAgent)
         assert isinstance(agent, BaseAgent)
 
@@ -85,6 +90,9 @@ class TestLLMAgentContract:
 
     def test_concrete_implementation_preserves_model_attribute(self):
         """Concrete implementation should properly initialize model attribute."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+
         class ConcreteLLMAgent(LLMAgent):
             def _construct_prompt(self, state: SimulationState) -> str:
                 return "test prompt"
@@ -92,12 +100,17 @@ class TestLLMAgentContract:
             def _validate_decision(self, decision: PolicyDecision) -> bool:
                 return True
 
-        agent = ConcreteLLMAgent(name="test_agent", model="gpt-4")
-        assert hasattr(agent, 'model')
-        assert agent.model == "gpt-4"
+        llm_config = LLMConfig(model="gpt-4", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        agent = ConcreteLLMAgent(name="test_agent", llm_client=client)
+        assert hasattr(agent, 'llm_client')
+        assert agent.llm_client.config.model == "gpt-4"
 
     def test_concrete_implementation_preserves_name_from_base(self):
         """Concrete implementation should inherit name attribute from BaseAgent."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+
         class ConcreteLLMAgent(LLMAgent):
             def _construct_prompt(self, state: SimulationState) -> str:
                 return "test prompt"
@@ -105,11 +118,16 @@ class TestLLMAgentContract:
             def _validate_decision(self, decision: PolicyDecision) -> bool:
                 return True
 
-        agent = ConcreteLLMAgent(name="my_agent", model="test_model")
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        agent = ConcreteLLMAgent(name="my_agent", llm_client=client)
         assert agent.name == "my_agent"
 
     def test_llm_agent_has_client_attribute(self):
         """LLMAgent should have a client attribute for LLM communication."""
+        from llm_sim.utils.llm_client import LLMClient
+        from llm_sim.models.config import LLMConfig
+
         class ConcreteLLMAgent(LLMAgent):
             def _construct_prompt(self, state: SimulationState) -> str:
                 return "test prompt"
@@ -117,5 +135,7 @@ class TestLLMAgentContract:
             def _validate_decision(self, decision: PolicyDecision) -> bool:
                 return True
 
-        agent = ConcreteLLMAgent(name="test_agent", model="test_model")
-        assert hasattr(agent, 'client')
+        llm_config = LLMConfig(model="test_model", temperature=0.7, max_retries=3)
+        client = LLMClient(llm_config)
+        agent = ConcreteLLMAgent(name="test_agent", llm_client=client)
+        assert hasattr(agent, 'llm_client')

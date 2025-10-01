@@ -2,7 +2,7 @@
 
 import pytest
 
-from llm_sim.agents.nation import NationAgent
+from llm_sim.implementations.agents.nation import NationAgent
 from llm_sim.models.state import SimulationState, AgentState, GlobalState
 from llm_sim.orchestrator import SimulationOrchestrator
 from llm_sim.models.config import SimulationConfig

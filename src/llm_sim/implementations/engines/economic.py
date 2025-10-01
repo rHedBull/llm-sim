@@ -143,22 +143,24 @@ class EconomicEngine(BaseEngine):
         total_value = state.global_state.total_economic_value
         termination = self.config.simulation.termination
 
-        # Check minimum value
-        if termination.min_value is not None and total_value < termination.min_value:
-            logger.info(
-                "termination_min_value",
-                total_value=total_value,
-                min_value=termination.min_value,
-            )
-            return True
+        # Check termination conditions if they exist
+        if termination is not None:
+            # Check minimum value
+            if termination.min_value is not None and total_value < termination.min_value:
+                logger.info(
+                    "termination_min_value",
+                    total_value=total_value,
+                    min_value=termination.min_value,
+                )
+                return True
 
-        # Check maximum value
-        if termination.max_value is not None and total_value > termination.max_value:
-            logger.info(
-                "termination_max_value",
-                total_value=total_value,
-                max_value=termination.max_value,
-            )
-            return True
+            # Check maximum value
+            if termination.max_value is not None and total_value > termination.max_value:
+                logger.info(
+                    "termination_max_value",
+                    total_value=total_value,
+                    max_value=termination.max_value,
+                )
+                return True
 
         return False
