@@ -8,6 +8,15 @@ from llm_sim.persistence.checkpoint_manager import CheckpointManager
 from llm_sim.persistence.exceptions import CheckpointSaveError, CheckpointLoadError
 from llm_sim.models.state import SimulationState, GlobalState
 from llm_sim.models.checkpoint import SimulationResults
+from llm_sim.models.config import VariableDefinition
+
+
+@pytest.fixture
+def test_var_defs():
+    """Test variable definitions for checkpoint manager."""
+    agent_vars = {"economic_strength": VariableDefinition(type="float", min=0, default=0.0)}
+    global_vars = {"interest_rate": VariableDefinition(type="float", default=0.05)}
+    return agent_vars, global_vars
 
 
 def create_test_state(turn: int) -> SimulationState:
@@ -19,35 +28,39 @@ def create_test_state(turn: int) -> SimulationState:
     )
 
 
-def test_should_save_checkpoint_returns_true_at_intervals(tmp_path):
+def test_should_save_checkpoint_returns_true_at_intervals(tmp_path, test_var_defs):
     """Test should_save_checkpoint returns True at intervals."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
 
     assert manager.should_save_checkpoint(5, is_final=False) is True
     assert manager.should_save_checkpoint(10, is_final=False) is True
     assert manager.should_save_checkpoint(3, is_final=False) is False
 
 
-def test_should_save_checkpoint_always_true_for_final(tmp_path):
+def test_should_save_checkpoint_always_true_for_final(tmp_path, test_var_defs):
     """Test should_save_checkpoint always True for final turn."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
 
     assert manager.should_save_checkpoint(7, is_final=True) is True
     assert manager.should_save_checkpoint(100, is_final=True) is True
 
 
-def test_should_save_checkpoint_respects_disabled_interval(tmp_path):
+def test_should_save_checkpoint_respects_disabled_interval(tmp_path, test_var_defs):
     """Test should_save_checkpoint respects disabled interval (None)."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=None, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=None, output_root=tmp_path)
 
     assert manager.should_save_checkpoint(5, is_final=False) is False
     assert manager.should_save_checkpoint(10, is_final=False) is False
     assert manager.should_save_checkpoint(5, is_final=True) is True
 
 
-def test_save_checkpoint_creates_file_at_correct_path(tmp_path):
+def test_save_checkpoint_creates_file_at_correct_path(tmp_path, test_var_defs):
     """Test save_checkpoint creates file at correct path."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
     state = create_test_state(5)
 
     path = manager.save_checkpoint(state, "interval")
@@ -57,9 +70,10 @@ def test_save_checkpoint_creates_file_at_correct_path(tmp_path):
     assert path.exists()
 
 
-def test_save_checkpoint_validates_content_roundtrip(tmp_path):
+def test_save_checkpoint_validates_content_roundtrip(tmp_path, test_var_defs):
     """Test save_checkpoint validates content round-trip."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
     state = create_test_state(5)
 
     save_path = manager.save_checkpoint(state, "interval")
@@ -68,9 +82,10 @@ def test_save_checkpoint_validates_content_roundtrip(tmp_path):
     assert loaded_state.turn == state.turn
 
 
-def test_save_checkpoint_raises_on_io_failure(tmp_path):
+def test_save_checkpoint_raises_on_io_failure(tmp_path, test_var_defs):
     """Test save_checkpoint raises CheckpointSaveError on I/O failure."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
     state = create_test_state(5)
 
     with patch("llm_sim.persistence.storage.JSONStorage.save_json", side_effect=OSError("Disk full")):
@@ -78,9 +93,10 @@ def test_save_checkpoint_raises_on_io_failure(tmp_path):
             manager.save_checkpoint(state, "interval")
 
 
-def test_load_checkpoint_returns_simulation_state(tmp_path):
+def test_load_checkpoint_returns_simulation_state(tmp_path, test_var_defs):
     """Test load_checkpoint returns SimulationState."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
     state = create_test_state(5)
     manager.save_checkpoint(state, "interval")
 
@@ -90,17 +106,19 @@ def test_load_checkpoint_returns_simulation_state(tmp_path):
     assert loaded_state.turn == 5
 
 
-def test_load_checkpoint_raises_on_missing_file(tmp_path):
+def test_load_checkpoint_raises_on_missing_file(tmp_path, test_var_defs):
     """Test load_checkpoint raises CheckpointLoadError on missing file."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
 
     with pytest.raises(CheckpointLoadError):
         manager.load_checkpoint("test_run_01", 5)
 
 
-def test_load_checkpoint_raises_on_corrupted_file(tmp_path):
+def test_load_checkpoint_raises_on_corrupted_file(tmp_path, test_var_defs):
     """Test load_checkpoint raises CheckpointLoadError on corrupted file."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
 
     # Create corrupted checkpoint file (directory already exists from manager init)
     checkpoint_dir = tmp_path / "test_run_01" / "checkpoints"
@@ -110,9 +128,10 @@ def test_load_checkpoint_raises_on_corrupted_file(tmp_path):
         manager.load_checkpoint("test_run_01", 5)
 
 
-def test_list_checkpoints_returns_sorted_list(tmp_path):
+def test_list_checkpoints_returns_sorted_list(tmp_path, test_var_defs):
     """Test list_checkpoints returns sorted list of available turns."""
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
 
     # Save checkpoints at different turns
     manager.save_checkpoint(create_test_state(10), "interval")
@@ -124,12 +143,13 @@ def test_list_checkpoints_returns_sorted_list(tmp_path):
     assert checkpoints == [5, 10, 15]
 
 
-def test_save_results_creates_result_json(tmp_path):
+def test_save_results_creates_result_json(tmp_path, test_var_defs):
     """Test save_results creates result.json file."""
     from llm_sim.models.checkpoint import RunMetadata
     from datetime import datetime
 
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_vars, global_vars = test_var_defs
+    manager = CheckpointManager("test_run_01", agent_vars, global_vars, checkpoint_interval=5, output_root=tmp_path)
 
     results = SimulationResults(
         run_metadata=RunMetadata(
