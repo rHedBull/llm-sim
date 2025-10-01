@@ -17,7 +17,7 @@ class TestBackwardCompatibilityDefaults:
         config = SimulationConfig(
             simulation={"name": "Test", "max_turns": 10},
             engine={"type": "economic"},
-            agents=[{"name": "Agent1"}],
+            agents=[{"name": "Agent1", "type": "nation", "initial_economic_strength": 1000.0}],
             validator={"type": "always_valid"},
             # NO state_variables field
         )
@@ -34,7 +34,7 @@ class TestBackwardCompatibilityDefaults:
         config = SimulationConfig(
             simulation={"name": "Test", "max_turns": 10},
             engine={"type": "economic"},
-            agents=[{"name": "Agent1"}],
+            agents=[{"name": "Agent1", "type": "nation", "initial_economic_strength": 1000.0}],
             validator={"type": "always_valid"},
         )
 
@@ -48,7 +48,7 @@ class TestBackwardCompatibilityDefaults:
         config = SimulationConfig(
             simulation={"name": "Test", "max_turns": 10},
             engine={"type": "economic"},
-            agents=[{"name": "Agent1"}],
+            agents=[{"name": "Agent1", "type": "nation", "initial_economic_strength": 1000.0}],
             validator={"type": "always_valid"},
         )
 
@@ -61,39 +61,39 @@ class TestBackwardCompatibilityDefaults:
         assert "inflation" in global_vars
         assert "unemployment" in global_vars
 
-    def test_deprecation_warning_is_logged(self, caplog):
+    def test_deprecation_warning_is_logged(self, caplog, capsys):
         """Should log deprecation warning when using defaults."""
-        with caplog.at_level("WARNING"):
-            config = SimulationConfig(
-                simulation={"name": "Test", "max_turns": 10},
-                engine={"type": "economic"},
-                agents=[{"name": "Agent1"}],
-                validator={"type": "always_valid"},
-            )
+        config = SimulationConfig(
+            simulation={"name": "Test", "max_turns": 10},
+            engine={"type": "economic"},
+            agents=[{"name": "Agent1", "type": "nation", "initial_economic_strength": 1000.0}],
+            validator={"type": "always_valid"},
+        )
 
-            get_variable_definitions(config)
+        get_variable_definitions(config)
 
-            # Check for deprecation warning
-            assert any("state_variables" in record.message for record in caplog.records)
-            assert any("legacy" in record.message.lower() for record in caplog.records)
+        # Check for deprecation warning in captured output (structlog writes to stdout)
+        captured = capsys.readouterr()
+        assert "state_variables" in captured.out
+        assert "legacy" in captured.out.lower()
 
-    def test_explicit_state_variables_no_warning(self, caplog):
+    def test_explicit_state_variables_no_warning(self, capsys):
         """Should NOT log warning when state_variables is explicit."""
         from llm_sim.models.config import StateVariablesConfig, VariableDefinition
 
-        with caplog.at_level("WARNING"):
-            config = SimulationConfig(
-                simulation={"name": "Test", "max_turns": 10},
-                engine={"type": "economic"},
-                agents=[{"name": "Agent1"}],
-                validator={"type": "always_valid"},
-                state_variables=StateVariablesConfig(
-                    agent_vars={"gdp": VariableDefinition(type="float", default=1000.0)},
-                    global_vars={},
-                ),
-            )
+        config = SimulationConfig(
+            simulation={"name": "Test", "max_turns": 10},
+            engine={"type": "economic"},
+            agents=[{"name": "Agent1", "type": "nation", "initial_economic_strength": 1000.0}],
+            validator={"type": "always_valid"},
+            state_variables=StateVariablesConfig(
+                agent_vars={"gdp": VariableDefinition(type="float", default=1000.0)},
+                global_vars={},
+            ),
+        )
 
-            get_variable_definitions(config)
+        get_variable_definitions(config)
 
-            # Should NOT have deprecation warning
-            assert not any("legacy" in record.message.lower() for record in caplog.records)
+        # Should NOT have deprecation warning in output
+        captured = capsys.readouterr()
+        assert "legacy" not in captured.out.lower()
