@@ -20,10 +20,11 @@ python main.py config_llm_example.yaml
 
 - **LLM-based reasoning**: Agents, validators, and engines powered by local LLMs via Ollama
 - **Rule-based fallback**: Traditional rule-based components for simpler scenarios
+- **Dynamic state variables**: Configure custom agent and global variables via YAML
 - **YAML configuration**: Simple declarative configuration
 - **Extensible architecture**: Three-tier inheritance (Base → LLM Abstract → Concrete)
 - **Full observability**: Structured logging with reasoning chain traces
-- **Checkpoint system**: Automatic state persistence with configurable intervals
+- **Checkpoint system**: Automatic state persistence with configurable intervals and schema validation
 
 ## Documentation
 
@@ -63,6 +64,38 @@ Configure checkpoint intervals in your YAML:
 simulation:
   checkpoint_interval: 5  # Save every 5 turns (null to disable)
 ```
+
+## Custom State Variables
+
+Define custom agent and global variables for your simulation:
+
+```yaml
+state_variables:
+  agent_vars:
+    economic_strength:
+      type: float
+      min: 0
+      default: 0.0
+    tech_level:
+      type: int
+      min: 1
+      max: 10
+      default: 1
+
+  global_vars:
+    interest_rate:
+      type: float
+      default: 0.05
+    world_peace:
+      type: bool
+      default: true
+```
+
+**Supported types**: `float`, `int`, `bool`, `str`
+
+**Optional constraints**: `min`, `max` for numeric types
+
+See [examples/](examples/) for complete configuration examples.
 
 ## Development
 
