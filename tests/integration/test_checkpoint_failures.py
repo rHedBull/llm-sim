@@ -45,10 +45,17 @@ def test_disk_full_during_save(tmp_path):
             orchestrator.run()
 
 
-def test_corrupt_checkpoint_file(tmp_path):
+def test_corrupt_checkpoint_file(tmp_path, legacy_variable_definitions):
     """Test: Corrupt checkpoint file, attempt resume."""
     # Create a checkpoint manager and simulate a corrupted file
-    manager = CheckpointManager("test_run_01", checkpoint_interval=5, output_root=tmp_path)
+    agent_var_defs, global_var_defs = legacy_variable_definitions
+    manager = CheckpointManager(
+        run_id="test_run_01",
+        agent_var_defs=agent_var_defs,
+        global_var_defs=global_var_defs,
+        checkpoint_interval=5,
+        output_root=tmp_path
+    )
 
     # Create a corrupted checkpoint file
     checkpoint_dir = tmp_path / "test_run_01" / "checkpoints"

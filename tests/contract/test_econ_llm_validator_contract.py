@@ -12,17 +12,15 @@ import pytest
 from unittest.mock import AsyncMock
 
 # These imports will fail until implementation is complete
-try:
-    from llm_sim.implementations.validators.econ_llm_validator import EconLLMValidator
-    from llm_sim.models.llm_models import ValidationResult
-    from llm_sim.models.action import Action, LLMAction
-    from llm_sim.models.state import SimulationState, GlobalState
-except ImportError:
-    pytest.skip("EconLLMValidator not yet implemented", allow_module_level=True)
+# Import implementations
+from llm_sim.implementations.validators.econ_llm_validator import EconLLMValidator
+from llm_sim.models.llm_models import ValidationResult
+from llm_sim.models.action import Action
+from llm_sim.models.state import SimulationState
 
 
 @pytest.mark.asyncio
-async def test_econ_validator_accepts_economic_action():
+async def test_econ_validator_accepts_economic_action(GlobalState):
     """Verify economic action is validated"""
     # Given: Mock LLM returning is_valid=True
     mock_client = AsyncMock()
@@ -40,7 +38,7 @@ async def test_econ_validator_accepts_economic_action():
     )
 
     actions = [
-        LLMAction(
+        Action(
             agent_name="USA",
             action_name="Lower interest rates",
             validated=False
@@ -68,7 +66,7 @@ async def test_econ_validator_accepts_economic_action():
 
 
 @pytest.mark.asyncio
-async def test_econ_validator_rejects_military_action():
+async def test_econ_validator_rejects_military_action(GlobalState):
     """Verify non-economic action is rejected"""
     # Given: Mock LLM returning is_valid=False
     mock_client = AsyncMock()
@@ -86,7 +84,7 @@ async def test_econ_validator_rejects_military_action():
     )
 
     actions = [
-        LLMAction(
+        Action(
             agent_name="USA",
             action_name="Deploy military forces",
             validated=False
@@ -113,7 +111,7 @@ async def test_econ_validator_rejects_military_action():
 
 
 @pytest.mark.asyncio
-async def test_econ_validator_uses_permissive_approach():
+async def test_econ_validator_uses_permissive_approach(GlobalState):
     """Verify boundary case (trade sanctions) is accepted with permissive=True"""
     # Given: Mock LLM returning is_valid=True for boundary case
     mock_client = AsyncMock()
@@ -131,7 +129,7 @@ async def test_econ_validator_uses_permissive_approach():
     )
 
     actions = [
-        LLMAction(
+        Action(
             agent_name="USA",
             action_name="Impose trade sanctions",
             validated=False
@@ -157,7 +155,7 @@ async def test_econ_validator_uses_permissive_approach():
     assert validated_actions[0].validated is True
 
 
-def test_econ_validator_domain_description():
+def test_econ_validator_domain_description(GlobalState):
     """Verify economic domain boundaries in description"""
     # Given: EconLLMValidator
     mock_client = AsyncMock()

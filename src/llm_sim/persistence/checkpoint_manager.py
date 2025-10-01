@@ -1,13 +1,15 @@
 """Checkpoint management for simulation state."""
 
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict
 from datetime import datetime
 
 from llm_sim.models.state import SimulationState
-from llm_sim.models.checkpoint import Checkpoint, SimulationResults
+from llm_sim.models.checkpoint import Checkpoint, CheckpointFile, CheckpointMetadata, SimulationResults
+from llm_sim.models.config import VariableDefinition
 from llm_sim.persistence.storage import JSONStorage
-from llm_sim.persistence.exceptions import CheckpointSaveError, CheckpointLoadError
+from llm_sim.persistence.exceptions import CheckpointSaveError, CheckpointLoadError, SchemaCompatibilityError
+from llm_sim.persistence.schema_hash import compute_schema_hash
 
 
 class CheckpointManager:
@@ -16,13 +18,17 @@ class CheckpointManager:
     def __init__(
         self,
         run_id: str,
+        agent_var_defs: Dict[str, VariableDefinition],
+        global_var_defs: Dict[str, VariableDefinition],
         checkpoint_interval: Optional[int] = None,
-        output_root: Path = Path("output")
+        output_root: Path = Path("output"),
     ):
         """Initialize checkpoint manager.
 
         Args:
             run_id: Unique run identifier
+            agent_var_defs: Agent variable definitions (for schema hash)
+            global_var_defs: Global variable definitions (for schema hash)
             checkpoint_interval: Save checkpoint every N turns (None to disable)
             output_root: Root output directory
         """
@@ -31,6 +37,9 @@ class CheckpointManager:
         self.output_root = output_root
         self.run_dir = output_root / run_id
         self.checkpoint_dir = self.run_dir / "checkpoints"
+
+        # Compute and store schema hash for this run
+        self.schema_hash = compute_schema_hash(agent_var_defs, global_var_defs)
 
         # Ensure checkpoint directory exists
         JSONStorage.ensure_directory(self.checkpoint_dir)
@@ -56,13 +65,13 @@ class CheckpointManager:
     def save_checkpoint(
         self,
         state: SimulationState,
-        checkpoint_type: Literal["interval", "last", "final"]
+        checkpoint_type: Literal["interval", "last", "final"] = "interval",
     ) -> Path:
-        """Save checkpoint to disk.
+        """Save checkpoint to disk with schema hash.
 
         Args:
             state: Simulation state to save
-            checkpoint_type: Type of checkpoint
+            checkpoint_type: Type of checkpoint (for backwards compatibility)
 
         Returns:
             Path to saved checkpoint file
@@ -71,12 +80,16 @@ class CheckpointManager:
             CheckpointSaveError: On I/O failure
         """
         try:
-            checkpoint = Checkpoint(
+            # Create metadata with schema_hash
+            metadata = CheckpointMetadata(
+                run_id=self.run_id,
                 turn=state.turn,
-                checkpoint_type=checkpoint_type,
-                state=state,
-                timestamp=datetime.now()
+                timestamp=datetime.now().isoformat(),
+                schema_hash=self.schema_hash,
             )
+
+            # Create checkpoint file with new format
+            checkpoint_file = CheckpointFile(metadata=metadata, state=state)
 
             # Determine filename
             if checkpoint_type == "last":
@@ -87,7 +100,7 @@ class CheckpointManager:
             checkpoint_path = self.checkpoint_dir / filename
 
             # Save using atomic write
-            JSONStorage.save_json(checkpoint_path, checkpoint)
+            JSONStorage.save_json(checkpoint_path, checkpoint_file)
 
             return checkpoint_path
 
@@ -96,28 +109,53 @@ class CheckpointManager:
                 f"Failed to save checkpoint at turn {state.turn}: {e}"
             ) from e
 
-    def load_checkpoint(self, run_id: str, turn: int) -> SimulationState:
-        """Load checkpoint from disk.
+    def load_checkpoint(
+        self,
+        run_id: str,
+        turn: int,
+        validate_schema: bool = True,
+    ) -> SimulationState:
+        """Load checkpoint from disk with schema validation.
 
         Args:
             run_id: Run identifier
             turn: Turn number to load
+            validate_schema: Whether to validate schema_hash matches (default: True)
 
         Returns:
             Simulation state from checkpoint
 
         Raises:
             CheckpointLoadError: On missing or corrupted file
+            SchemaCompatibilityError: If schema_hash doesn't match
         """
         checkpoint_path = self.output_root / run_id / "checkpoints" / f"turn_{turn}.json"
 
         try:
-            checkpoint = JSONStorage.load_json(checkpoint_path, Checkpoint)
-            return checkpoint.state
+            # Try to load new format first
+            checkpoint_file = JSONStorage.load_json(checkpoint_path, CheckpointFile)
+
+            # Validate schema hash if requested
+            if validate_schema and checkpoint_file.metadata.schema_hash != self.schema_hash:
+                raise SchemaCompatibilityError(
+                    f"Schema mismatch: checkpoint has {checkpoint_file.metadata.schema_hash}, "
+                    f"current config has {self.schema_hash}. "
+                    "Variable definitions have changed between checkpoint save and load."
+                )
+
+            return checkpoint_file.state
+
+        except SchemaCompatibilityError:
+            raise  # Re-raise schema errors as-is
         except Exception as e:
-            raise CheckpointLoadError(
-                f"Failed to load checkpoint from {checkpoint_path}: {e}"
-            ) from e
+            # Try legacy format as fallback
+            try:
+                checkpoint = JSONStorage.load_json(checkpoint_path, Checkpoint)
+                return checkpoint.state
+            except Exception:
+                raise CheckpointLoadError(
+                    f"Failed to load checkpoint from {checkpoint_path}: {e}"
+                ) from e
 
     def list_checkpoints(self, run_id: str) -> list[int]:
         """List available checkpoint turn numbers.

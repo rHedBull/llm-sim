@@ -4,7 +4,8 @@ from typing import Dict, List
 
 from llm_sim.infrastructure.base.engine import BaseEngine
 from llm_sim.models.action import Action
-from llm_sim.models.state import AgentState, GlobalState, SimulationState
+from llm_sim.models.state import SimulationState, create_agent_state_model, create_global_state_model
+from llm_sim.models.config import get_variable_definitions
 from llm_sim.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -19,23 +20,51 @@ class EconomicEngine(BaseEngine):
         Returns:
             Initial simulation state
         """
-        agents: Dict[str, AgentState] = {}
+        # Get variable definitions from config
+        agent_var_defs, global_var_defs = get_variable_definitions(self.config)
+
+        # Create dynamic state models
+        AgentState = create_agent_state_model(agent_var_defs)
+        GlobalState = create_global_state_model(global_var_defs)
+
+        # Store models for later use
+        self._agent_state_model = AgentState
+        self._global_state_model = GlobalState
+
+        # Initialize agents
+        agents: Dict[str, any] = {}
         total_value = 0.0
 
         for agent_config in self.config.agents:
-            agents[agent_config.name] = AgentState(
-                name=agent_config.name,
-                economic_strength=agent_config.initial_economic_strength,
-            )
-            total_value += agent_config.initial_economic_strength
+            # Create agent with dynamic model (using defaults from variable definitions)
+            agent_data = {"name": agent_config.name}
+
+            # For backward compatibility: if economic_strength exists, use initial_economic_strength
+            if "economic_strength" in agent_var_defs:
+                # Use initial_economic_strength if provided, otherwise use default from variable definition
+                if agent_config.initial_economic_strength is not None:
+                    agent_data["economic_strength"] = agent_config.initial_economic_strength
+                    total_value += agent_config.initial_economic_strength
+                else:
+                    # Use default from variable definition
+                    agent_data["economic_strength"] = agent_var_defs["economic_strength"].default
+                    total_value += agent_var_defs["economic_strength"].default
+
+            agents[agent_config.name] = AgentState(**agent_data)
+
+        # Initialize global state with dynamic model
+        global_data = {}
+
+        # For backward compatibility: populate interest_rate and total_economic_value if they exist
+        if "interest_rate" in global_var_defs:
+            global_data["interest_rate"] = self.config.engine.interest_rate
+        if "total_economic_value" in global_var_defs:
+            global_data["total_economic_value"] = total_value
 
         state = SimulationState(
             turn=0,
             agents=agents,
-            global_state=GlobalState(
-                interest_rate=self.config.engine.interest_rate,
-                total_economic_value=total_value,
-            ),
+            global_state=GlobalState(**global_data),
         )
 
         self._state = state
@@ -43,8 +72,8 @@ class EconomicEngine(BaseEngine):
             "state_initialized",
             turn=0,
             num_agents=len(agents),
-            total_value=total_value,
-            interest_rate=self.config.engine.interest_rate,
+            total_value=total_value if "total_economic_value" in global_var_defs else None,
+            interest_rate=self.config.engine.interest_rate if "interest_rate" in global_var_defs else None,
         )
 
         return state
@@ -87,33 +116,54 @@ class EconomicEngine(BaseEngine):
         Returns:
             New state with interest applied
         """
-        new_agents: Dict[str, AgentState] = {}
+        new_agents: Dict[str, any] = {}
         total_value = 0.0
+
+        # Only apply economic rules if economic_strength and interest_rate exist
+        if not hasattr(state.global_state, "interest_rate"):
+            # No economic simulation - just increment turn
+            return SimulationState(
+                turn=state.turn + 1,
+                agents=state.agents,
+                global_state=state.global_state,
+            )
+
         interest_rate = state.global_state.interest_rate
 
+        # Apply interest to agents with economic_strength
         for name, agent in state.agents.items():
-            new_strength = agent.economic_strength * (1 + interest_rate)
-            new_agents[name] = AgentState(name=name, economic_strength=new_strength)
-            total_value += new_strength
+            if hasattr(agent, "economic_strength"):
+                new_strength = agent.economic_strength * (1 + interest_rate)
+                new_agents[name] = self._agent_state_model(name=name, economic_strength=new_strength)
+                total_value += new_strength
 
-            logger.debug(
-                "applied_interest",
-                agent=name,
-                old_strength=agent.economic_strength,
-                new_strength=new_strength,
-                interest_rate=interest_rate,
-            )
+                logger.debug(
+                    "applied_interest",
+                    agent=name,
+                    old_strength=agent.economic_strength,
+                    new_strength=new_strength,
+                    interest_rate=interest_rate,
+                )
+            else:
+                # Agent doesn't have economic_strength - copy as-is
+                new_agents[name] = agent
+
+        # Update global state
+        global_data = state.global_state.model_dump()
+        global_data["interest_rate"] = interest_rate
+        if "total_economic_value" in global_data:
+            global_data["total_economic_value"] = total_value
 
         new_state = SimulationState(
             turn=state.turn + 1,
             agents=new_agents,
-            global_state=GlobalState(interest_rate=interest_rate, total_economic_value=total_value),
+            global_state=self._global_state_model(**global_data),
         )
 
         logger.info(
             "engine_rules_applied",
             turn=new_state.turn,
-            total_value=total_value,
+            total_value=total_value if hasattr(state.global_state, "total_economic_value") else None,
             interest_rate=interest_rate,
         )
 

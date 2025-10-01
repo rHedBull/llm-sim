@@ -41,6 +41,29 @@ engine:
   type: econ_llm_engine
   interest_rate: 0.03
 
+state_variables:
+  agent_vars:
+    economic_strength:
+      type: float
+      min: 0
+      default: 0.0
+  global_vars:
+    interest_rate:
+      type: float
+      default: 0.03
+    total_economic_value:
+      type: float
+      default: 0.0
+    gdp_growth:
+      type: float
+      default: 0.0
+    inflation:
+      type: float
+      default: 0.0
+    unemployment:
+      type: float
+      default: 0.0
+
 logging:
   level: INFO
   format: console

@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-sim/schemas/checkpoint-with-schema.json",
+  "title": "Checkpoint File Schema with Variable Schema Metadata",
+  "description": "JSON Schema for checkpoint files including schema_hash for compatibility validation",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "Checkpoint metadata (extended with schema_hash)",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "description": "Unique run identifier"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Turn number when checkpoint was created"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp"
+        },
+        "schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 hash of variable definitions for compatibility checking (NEW)"
+        }
+      },
+      "required": ["run_id", "turn", "timestamp", "schema_hash"],
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "object",
+      "description": "Simulation state snapshot",
+      "properties": {
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "agents": {
+          "type": "object",
+          "description": "Agent states with dynamic fields based on variable definitions",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Agent identifier (fixed field)"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": true
+          }
+        },
+        "global_state": {
+          "type": "object",
+          "description": "Global state with dynamic fields based on variable definitions",
+          "additionalProperties": true
+        },
+        "reasoning_chains": {
+          "type": "array",
+          "description": "LLM reasoning history (existing field)",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": ["turn", "agents", "global_state"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["metadata", "state"],
+  "additionalProperties": false
+}

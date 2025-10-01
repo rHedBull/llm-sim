@@ -1,7 +1,12 @@
 """Configuration models for the simulation."""
 
-from typing import List, Optional
+from pathlib import Path
+from typing import Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, field_validator, model_validator
+import structlog
+import yaml
+
+logger = structlog.get_logger()
 
 
 class TerminationConditions(BaseModel):
@@ -56,7 +61,7 @@ class AgentConfig(BaseModel):
 
     name: str
     type: str
-    initial_economic_strength: float
+    initial_economic_strength: Optional[float] = None  # Optional for dynamic variable systems
 
 
 class ValidatorConfig(BaseModel):
@@ -85,6 +90,73 @@ class LoggingConfig(BaseModel):
     format: str = "json"
 
 
+class VariableDefinition(BaseModel):
+    """Definition of a single state variable."""
+
+    type: Literal["float", "int", "bool", "categorical"]
+    min: Optional[float] = None
+    max: Optional[float] = None
+    values: Optional[List[str]] = None
+    default: Union[float, int, bool, str]
+
+    @model_validator(mode="after")
+    def validate_variable_definition(self) -> "VariableDefinition":
+        """Validate variable definition based on type."""
+        # Categorical must have values
+        if self.type == "categorical":
+            if not self.values:
+                raise ValueError("Categorical type requires 'values' field")
+            if len(self.values) == 0:
+                raise ValueError("Categorical 'values' list cannot be empty")
+            if self.default not in self.values:
+                raise ValueError(
+                    f"Default value '{self.default}' must be in values list {self.values}"
+                )
+
+        # Numeric types: check min/max constraints
+        if self.type in ("float", "int"):
+            if self.min is not None and self.max is not None and self.min > self.max:
+                raise ValueError(f"min ({self.min}) cannot be greater than max ({self.max})")
+
+            if self.min is not None and self.default < self.min:
+                raise ValueError(
+                    f"Default value {self.default} is below minimum {self.min}"
+                )
+
+            if self.max is not None and self.default > self.max:
+                raise ValueError(
+                    f"Default value {self.default} is above maximum {self.max}"
+                )
+
+        return self
+
+
+class StateVariablesConfig(BaseModel):
+    """Container for agent and global state variable definitions."""
+
+    agent_vars: Dict[str, VariableDefinition]
+    global_vars: Dict[str, VariableDefinition]
+
+    @model_validator(mode="after")
+    def validate_variable_names(self) -> "StateVariablesConfig":
+        """Validate variable names are valid Python identifiers and not reserved."""
+        reserved_names = {"name", "turn", "agents", "global_state", "reasoning_chains"}
+
+        for var_name in self.agent_vars.keys():
+            if not var_name.isidentifier():
+                raise ValueError(f"Variable name '{var_name}' is not a valid Python identifier")
+            if var_name in reserved_names:
+                raise ValueError(f"Variable name '{var_name}' is reserved and cannot be used")
+
+        for var_name in self.global_vars.keys():
+            if not var_name.isidentifier():
+                raise ValueError(f"Variable name '{var_name}' is not a valid Python identifier")
+            if var_name in reserved_names:
+                raise ValueError(f"Variable name '{var_name}' is reserved and cannot be used")
+
+        return self
+
+
 class SimulationConfig(BaseModel):
     """Complete simulation configuration."""
 
@@ -94,6 +166,7 @@ class SimulationConfig(BaseModel):
     validator: ValidatorConfig
     logging: Optional[LoggingConfig] = None  # Optional for backward compatibility
     llm: Optional[LLMConfig] = None  # Optional for backward compatibility
+    state_variables: Optional[StateVariablesConfig] = None  # Optional for backward compatibility
 
     @model_validator(mode="after")
     def validate_unique_agent_names(self) -> "SimulationConfig":
@@ -102,3 +175,58 @@ class SimulationConfig(BaseModel):
         if len(agent_names) != len(set(agent_names)):
             raise ValueError("All agent names must be unique, found duplicates")
         return self
+
+
+def get_variable_definitions(
+    config: SimulationConfig,
+) -> tuple[Dict[str, VariableDefinition], Dict[str, VariableDefinition]]:
+    """Get variable definitions from config, using defaults if not specified."""
+    if config.state_variables is None:
+        logger.warning(
+            "Config missing 'state_variables' section. "
+            "Using legacy default variables. "
+            "Please update config to explicit variable definitions."
+        )
+
+        # Default agent variables
+        default_agent_vars = {
+            "economic_strength": VariableDefinition(type="float", min=0, default=0.0)
+        }
+
+        # Default global variables
+        default_global_vars = {
+            "interest_rate": VariableDefinition(type="float", default=0.05),
+            "total_economic_value": VariableDefinition(type="float", default=0.0),
+            "gdp_growth": VariableDefinition(type="float", default=0.0),
+            "inflation": VariableDefinition(type="float", default=0.0),
+            "unemployment": VariableDefinition(type="float", default=0.0),
+        }
+
+        return default_agent_vars, default_global_vars
+
+    return config.state_variables.agent_vars, config.state_variables.global_vars
+
+
+def load_config(config_path: Union[str, Path]) -> SimulationConfig:
+    """Load simulation configuration from YAML file.
+
+    Args:
+        config_path: Path to YAML configuration file
+
+    Returns:
+        Parsed and validated SimulationConfig
+
+    Raises:
+        FileNotFoundError: If config file doesn't exist
+        yaml.YAMLError: If YAML is malformed
+        ValidationError: If config doesn't match schema
+    """
+    config_path = Path(config_path)
+
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    with open(config_path, "r") as f:
+        config_data = yaml.safe_load(f)
+
+    return SimulationConfig(**config_data)

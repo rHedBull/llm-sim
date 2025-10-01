@@ -8,7 +8,7 @@ import yaml
 
 from llm_sim.discovery import ComponentDiscovery
 from llm_sim.models.action import Action
-from llm_sim.models.config import SimulationConfig
+from llm_sim.models.config import SimulationConfig, get_variable_definitions
 from llm_sim.models.state import SimulationState
 from llm_sim.models.checkpoint import RunMetadata, SimulationResults
 from llm_sim.persistence.checkpoint_manager import CheckpointManager
@@ -54,9 +54,14 @@ class SimulationOrchestrator:
             output_root=self.output_root
         )
 
-        # Initialize checkpoint manager
+        # Get variable definitions for schema hash
+        agent_var_defs, global_var_defs = get_variable_definitions(self.config)
+
+        # Initialize checkpoint manager with variable definitions
         self.checkpoint_manager = CheckpointManager(
             run_id=self.run_id,
+            agent_var_defs=agent_var_defs,
+            global_var_defs=global_var_defs,
             checkpoint_interval=self.config.simulation.checkpoint_interval,
             output_root=self.output_root
         )
@@ -201,6 +206,17 @@ class SimulationOrchestrator:
         # Fall back to basic initialization
         return ValidatorClass()
 
+    def initialize(self) -> SimulationState:
+        """Initialize simulation state.
+
+        Returns:
+            Initial simulation state
+
+        Note: This is a convenience method for testing. The run() method
+        initializes state automatically.
+        """
+        return self.engine.initialize_state()
+
     def run(self) -> Dict[str, Any]:
         """Run the simulation.
 
@@ -258,11 +274,11 @@ class SimulationOrchestrator:
             # Always save last checkpoint (overwrite each turn)
             self.checkpoint_manager.save_checkpoint(state, "last")
 
-            logger.info(
-                "turn_completed",
-                turn=state.turn,
-                total_value=state.global_state.total_economic_value,
-            )
+            # Log turn completion (safely handle dynamic global state)
+            log_data = {"turn": state.turn}
+            if hasattr(state.global_state, "total_economic_value"):
+                log_data["total_value"] = state.global_state.total_economic_value
+            logger.info("turn_completed", **log_data)
 
         # Update run metadata end time
         self.run_metadata = RunMetadata(
@@ -284,13 +300,15 @@ class SimulationOrchestrator:
         )
         self.checkpoint_manager.save_results(results)
 
-        logger.info(
-            "simulation_completed",
-            final_turn=state.turn,
-            final_value=state.global_state.total_economic_value,
-            total_turns=len(self.history) - 1,  # Exclude initial state
-            run_id=self.run_id,
-        )
+        # Log simulation completion (safely handle dynamic global state)
+        log_data = {
+            "final_turn": state.turn,
+            "total_turns": len(self.history) - 1,  # Exclude initial state
+            "run_id": self.run_id,
+        }
+        if hasattr(state.global_state, "total_economic_value"):
+            log_data["final_value"] = state.global_state.total_economic_value
+        logger.info("simulation_completed", **log_data)
 
         return {"final_state": state, "history": self.history, "stats": stats, "run_id": self.run_id}
 
@@ -327,11 +345,11 @@ class SimulationOrchestrator:
             # Always save last checkpoint (overwrite each turn)
             self.checkpoint_manager.save_checkpoint(state, "last")
 
-            logger.info(
-                "turn_completed",
-                turn=state.turn,
-                total_value=state.global_state.total_economic_value,
-            )
+            # Log turn completion (safely handle dynamic global state)
+            log_data = {"turn": state.turn}
+            if hasattr(state.global_state, "total_economic_value"):
+                log_data["total_value"] = state.global_state.total_economic_value
+            logger.info("turn_completed", **log_data)
 
         # Update run metadata end time
         self.run_metadata = RunMetadata(
@@ -353,13 +371,15 @@ class SimulationOrchestrator:
         )
         self.checkpoint_manager.save_results(results)
 
-        logger.info(
-            "simulation_completed",
-            final_turn=state.turn,
-            final_value=state.global_state.total_economic_value,
-            total_turns=len(self.history) - 1,  # Exclude initial state
-            run_id=self.run_id,
-        )
+        # Log simulation completion (safely handle dynamic global state)
+        log_data = {
+            "final_turn": state.turn,
+            "total_turns": len(self.history) - 1,  # Exclude initial state
+            "run_id": self.run_id,
+        }
+        if hasattr(state.global_state, "total_economic_value"):
+            log_data["final_value"] = state.global_state.total_economic_value
+        logger.info("simulation_completed", **log_data)
 
         return {"final_state": state, "history": self.history, "stats": stats, "run_id": self.run_id}
 
@@ -423,14 +443,21 @@ class SimulationOrchestrator:
         Returns:
             Dictionary of statistics
         """
-        return {
+        stats = {
             "validation": self.validator.get_stats(),
             "total_turns": len(self.history) - 1,
             "final_turn": self.history[-1].turn if self.history else 0,
-            "initial_value": (
-                self.history[0].global_state.total_economic_value if self.history else 0
-            ),
-            "final_value": (
-                self.history[-1].global_state.total_economic_value if self.history else 0
-            ),
         }
+
+        # Add economic values if they exist (backward compatibility)
+        if self.history and hasattr(self.history[0].global_state, "total_economic_value"):
+            stats["initial_value"] = self.history[0].global_state.total_economic_value
+
+        if self.history and hasattr(self.history[-1].global_state, "total_economic_value"):
+            stats["final_value"] = self.history[-1].global_state.total_economic_value
+
+        return stats
+
+
+# Backward compatibility alias
+Orchestrator = SimulationOrchestrator

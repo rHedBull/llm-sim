@@ -2,14 +2,14 @@
 
 import pytest
 
-from llm_sim.models.state import SimulationState, AgentState, GlobalState
+from llm_sim.models.state import SimulationState
 from llm_sim.implementations.agents.nation import NationAgent
 
 
 class TestNationAgent:
     """Tests for NationAgent implementation."""
 
-    def test_create_agent(self) -> None:
+    def test_create_agent(self, AgentState, GlobalState) -> None:
         """Test creating a nation agent."""
         agent = NationAgent(name="Nation_A")
         assert agent.name == "Nation_A"
@@ -21,7 +21,7 @@ class TestNationAgent:
         agent_decline = NationAgent(name="Nation_C", strategy="decline")
         assert agent_decline.strategy == "decline"
 
-    def test_decide_action_grow(self) -> None:
+    def test_decide_action_grow(self, AgentState, GlobalState) -> None:
         """Test growth strategy action."""
         agent = NationAgent(name="Nation_A", strategy="grow")
 
@@ -38,7 +38,7 @@ class TestNationAgent:
         assert action.parameters["strength"] == 1000.0
         assert not action.validated
 
-    def test_decide_action_maintain(self) -> None:
+    def test_decide_action_maintain(self, AgentState, GlobalState) -> None:
         """Test maintain strategy action."""
         agent = NationAgent(name="Nation_B", strategy="maintain")
 
@@ -54,7 +54,7 @@ class TestNationAgent:
         assert action.action_name == "maintain"
         assert action.parameters["strength"] == 2000.0
 
-    def test_decide_action_decline(self) -> None:
+    def test_decide_action_decline(self, AgentState, GlobalState) -> None:
         """Test decline strategy action."""
         agent = NationAgent(name="Nation_C", strategy="decline")
 
@@ -70,7 +70,7 @@ class TestNationAgent:
         assert action.action_name == "decline"
         assert action.parameters["strength"] == 500.0
 
-    def test_receive_state(self) -> None:
+    def test_receive_state(self, AgentState, GlobalState) -> None:
         """Test state reception."""
         agent = NationAgent(name="Nation_A")
 
@@ -89,12 +89,12 @@ class TestNationAgent:
         assert received_state.turn == 5
         assert received_state.agents["Nation_A"].economic_strength == 1500.0
 
-    def test_invalid_strategy(self) -> None:
+    def test_invalid_strategy(self, AgentState, GlobalState) -> None:
         """Test that invalid strategy raises error."""
         with pytest.raises(ValueError, match="Invalid strategy"):
             NationAgent(name="Nation_X", strategy="invalid")
 
-    def test_agent_not_in_state(self) -> None:
+    def test_agent_not_in_state(self, AgentState, GlobalState) -> None:
         """Test error when agent not in state."""
         agent = NationAgent(name="Nation_A")
 
