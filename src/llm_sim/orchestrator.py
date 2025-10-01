@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 import yaml
 
@@ -9,6 +10,9 @@ from llm_sim.discovery import ComponentDiscovery
 from llm_sim.models.action import Action
 from llm_sim.models.config import SimulationConfig
 from llm_sim.models.state import SimulationState
+from llm_sim.models.checkpoint import RunMetadata, SimulationResults
+from llm_sim.persistence.checkpoint_manager import CheckpointManager
+from llm_sim.persistence.run_id_generator import RunIDGenerator
 from llm_sim.utils.llm_client import LLMClient
 from llm_sim.utils.logging import configure_logging, get_logger
 
@@ -19,15 +23,18 @@ class SimulationOrchestrator:
     """Main orchestrator for running simulations."""
 
     def __init__(
-        self, config: SimulationConfig, agent_strategies: Optional[Dict[str, str]] = None
+        self, config: SimulationConfig, agent_strategies: Optional[Dict[str, str]] = None,
+        output_root: Path = Path("output")
     ) -> None:
         """Initialize orchestrator with configuration.
 
         Args:
             config: Simulation configuration
             agent_strategies: Optional mapping of agent names to strategies
+            output_root: Root directory for output files
         """
         self.config = config
+        self.output_root = output_root
         self._configure_logging()
 
         # Initialize discovery mechanism
@@ -37,6 +44,33 @@ class SimulationOrchestrator:
         self.engine = self._create_engine()
         self.agents = self._create_agents(agent_strategies)
         self.validator = self._create_validator()
+
+        # Generate unique run ID
+        self.start_time = datetime.now()
+        self.run_id = RunIDGenerator.generate(
+            simulation_name=self.config.simulation.name,
+            num_agents=len(self.agents),
+            start_time=self.start_time,
+            output_root=self.output_root
+        )
+
+        # Initialize checkpoint manager
+        self.checkpoint_manager = CheckpointManager(
+            run_id=self.run_id,
+            checkpoint_interval=self.config.simulation.checkpoint_interval,
+            output_root=self.output_root
+        )
+
+        # Create run metadata
+        self.run_metadata = RunMetadata(
+            run_id=self.run_id,
+            simulation_name=self.config.simulation.name,
+            num_agents=len(self.agents),
+            start_time=self.start_time,
+            end_time=None,
+            checkpoint_interval=self.config.simulation.checkpoint_interval,
+            config_snapshot=self.config.model_dump()
+        )
 
         # State tracking
         self.history: List[SimulationState] = []
@@ -197,6 +231,7 @@ class SimulationOrchestrator:
             name=self.config.simulation.name,
             max_turns=self.config.simulation.max_turns,
             num_agents=len(self.agents),
+            run_id=self.run_id,
         )
 
         # Initialize state
@@ -208,23 +243,55 @@ class SimulationOrchestrator:
             state = self._run_turn_sync(state)
             self.history.append(state)
 
+            # Check if we should save checkpoint
+            is_final = self.engine.check_termination(state)
+            if self.checkpoint_manager.should_save_checkpoint(state.turn, is_final):
+                checkpoint_type = "final" if is_final else "interval"
+                self.checkpoint_manager.save_checkpoint(state, checkpoint_type)
+                logger.info(
+                    "checkpoint_saved",
+                    turn=state.turn,
+                    type=checkpoint_type,
+                )
+
+            # Always save last checkpoint (overwrite each turn)
+            self.checkpoint_manager.save_checkpoint(state, "last")
+
             logger.info(
                 "turn_completed",
                 turn=state.turn,
                 total_value=state.global_state.total_economic_value,
             )
 
+        # Update run metadata end time
+        self.run_metadata = RunMetadata(
+            **{**self.run_metadata.model_dump(), "end_time": datetime.now()}
+        )
+
+        # Collect checkpoint list
+        checkpoints = self.checkpoint_manager.list_checkpoints(self.run_id)
+
         # Collect final statistics
         stats = self._collect_stats()
+
+        # Save simulation results
+        results = SimulationResults(
+            run_metadata=self.run_metadata,
+            final_state=state,
+            checkpoints=checkpoints,
+            summary_stats=stats
+        )
+        self.checkpoint_manager.save_results(results)
 
         logger.info(
             "simulation_completed",
             final_turn=state.turn,
             final_value=state.global_state.total_economic_value,
             total_turns=len(self.history) - 1,  # Exclude initial state
+            run_id=self.run_id,
         )
 
-        return {"final_state": state, "history": self.history, "stats": stats}
+        return {"final_state": state, "history": self.history, "stats": stats, "run_id": self.run_id}
 
     async def _run_async(self) -> Dict[str, Any]:
         """Run simulation asynchronously (for LLM components)."""
@@ -233,6 +300,7 @@ class SimulationOrchestrator:
             name=self.config.simulation.name,
             max_turns=self.config.simulation.max_turns,
             num_agents=len(self.agents),
+            run_id=self.run_id,
         )
 
         # Initialize state
@@ -244,23 +312,55 @@ class SimulationOrchestrator:
             state = await self._run_turn_async(state)
             self.history.append(state)
 
+            # Check if we should save checkpoint
+            is_final = self.engine.check_termination(state)
+            if self.checkpoint_manager.should_save_checkpoint(state.turn, is_final):
+                checkpoint_type = "final" if is_final else "interval"
+                self.checkpoint_manager.save_checkpoint(state, checkpoint_type)
+                logger.info(
+                    "checkpoint_saved",
+                    turn=state.turn,
+                    type=checkpoint_type,
+                )
+
+            # Always save last checkpoint (overwrite each turn)
+            self.checkpoint_manager.save_checkpoint(state, "last")
+
             logger.info(
                 "turn_completed",
                 turn=state.turn,
                 total_value=state.global_state.total_economic_value,
             )
 
+        # Update run metadata end time
+        self.run_metadata = RunMetadata(
+            **{**self.run_metadata.model_dump(), "end_time": datetime.now()}
+        )
+
+        # Collect checkpoint list
+        checkpoints = self.checkpoint_manager.list_checkpoints(self.run_id)
+
         # Collect final statistics
         stats = self._collect_stats()
+
+        # Save simulation results
+        results = SimulationResults(
+            run_metadata=self.run_metadata,
+            final_state=state,
+            checkpoints=checkpoints,
+            summary_stats=stats
+        )
+        self.checkpoint_manager.save_results(results)
 
         logger.info(
             "simulation_completed",
             final_turn=state.turn,
             final_value=state.global_state.total_economic_value,
             total_turns=len(self.history) - 1,  # Exclude initial state
+            run_id=self.run_id,
         )
 
-        return {"final_state": state, "history": self.history, "stats": stats}
+        return {"final_state": state, "history": self.history, "stats": stats, "run_id": self.run_id}
 
     async def _run_turn_async(self, state: SimulationState) -> SimulationState:
         """Run a single simulation turn asynchronously (for LLM-based components).

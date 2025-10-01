@@ -17,6 +17,7 @@ class SimulationSettings(BaseModel):
     name: str
     max_turns: int
     termination: Optional[TerminationConditions] = None
+    checkpoint_interval: Optional[int] = None
 
     @field_validator("max_turns")
     @classmethod
@@ -24,6 +25,14 @@ class SimulationSettings(BaseModel):
         """Validate max_turns is positive."""
         if v <= 0:
             raise ValueError("max_turns must be greater than 0")
+        return v
+
+    @field_validator("checkpoint_interval")
+    @classmethod
+    def validate_checkpoint_interval(cls, v: Optional[int]) -> Optional[int]:
+        """Validate checkpoint_interval is positive if provided."""
+        if v is not None and v <= 0:
+            raise ValueError("checkpoint_interval must be greater than 0")
         return v
 
 
