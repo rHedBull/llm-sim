@@ -24,7 +24,8 @@ class SimulationOrchestrator:
 
     def __init__(
         self, config: SimulationConfig, agent_strategies: Optional[Dict[str, str]] = None,
-        output_root: Path = Path("output")
+        output_root: Path = Path("output"),
+        implementations_root: Optional[Path] = None
     ) -> None:
         """Initialize orchestrator with configuration.
 
@@ -32,13 +33,16 @@ class SimulationOrchestrator:
             config: Simulation configuration
             agent_strategies: Optional mapping of agent names to strategies
             output_root: Root directory for output files
+            implementations_root: Optional root directory for implementations/ discovery.
+                                If None, defaults to framework's directory (backward compat).
         """
         self.config = config
         self.output_root = output_root
         self._configure_logging()
 
         # Initialize discovery mechanism
-        self.discovery = ComponentDiscovery(Path(__file__).parent)
+        discovery_root = implementations_root if implementations_root else Path(__file__).parent
+        self.discovery = ComponentDiscovery(discovery_root)
 
         # Initialize components
         self.engine = self._create_engine()
@@ -81,12 +85,18 @@ class SimulationOrchestrator:
         self.history: List[SimulationState] = []
 
     @classmethod
-    def from_yaml(cls, path: str, output_root: Path = Path("output")) -> "SimulationOrchestrator":
+    def from_yaml(
+        cls,
+        path: str,
+        output_root: Path = Path("output"),
+        implementations_root: Optional[Path] = None
+    ) -> "SimulationOrchestrator":
         """Load configuration from YAML file and create orchestrator.
 
         Args:
             path: Path to YAML configuration file
             output_root: Root directory for output files
+            implementations_root: Optional root directory for implementations/ discovery
 
         Returns:
             Configured SimulationOrchestrator instance
@@ -95,7 +105,7 @@ class SimulationOrchestrator:
             config_data = yaml.safe_load(f)
 
         config = SimulationConfig(**config_data)
-        return cls(config, output_root=output_root)
+        return cls(config, output_root=output_root, implementations_root=implementations_root)
 
     def _configure_logging(self) -> None:
         """Configure logging based on config."""
