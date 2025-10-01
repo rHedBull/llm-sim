@@ -1,8 +1,10 @@
 """Configuration models for the simulation."""
 
+from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, field_validator, model_validator
 import structlog
+import yaml
 
 logger = structlog.get_logger()
 
@@ -203,3 +205,28 @@ def get_variable_definitions(
         return default_agent_vars, default_global_vars
 
     return config.state_variables.agent_vars, config.state_variables.global_vars
+
+
+def load_config(config_path: Union[str, Path]) -> SimulationConfig:
+    """Load simulation configuration from YAML file.
+
+    Args:
+        config_path: Path to YAML configuration file
+
+    Returns:
+        Parsed and validated SimulationConfig
+
+    Raises:
+        FileNotFoundError: If config file doesn't exist
+        yaml.YAMLError: If YAML is malformed
+        ValidationError: If config doesn't match schema
+    """
+    config_path = Path(config_path)
+
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    with open(config_path, "r") as f:
+        config_data = yaml.safe_load(f)
+
+    return SimulationConfig(**config_data)
