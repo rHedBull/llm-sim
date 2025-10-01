@@ -11,17 +11,14 @@ Status: THESE TESTS MUST FAIL - EconLLMAgent not yet implemented
 import pytest
 from unittest.mock import AsyncMock
 
-# These imports will fail until implementation is complete
-try:
-    from llm_sim.implementations.agents.econ_llm_agent import EconLLMAgent
-    from llm_sim.models.llm_models import PolicyDecision
-    from llm_sim.models.state import SimulationState, GlobalState
-except ImportError:
-    pytest.skip("EconLLMAgent not yet implemented", allow_module_level=True)
+# Import implementations
+from llm_sim.implementations.agents.econ_llm_agent import EconLLMAgent
+from llm_sim.models.llm_models import PolicyDecision
+from llm_sim.models.state import SimulationState
 
 
 @pytest.mark.asyncio
-async def test_econ_agent_generates_policy_with_llm():
+async def test_econ_agent_generates_policy_with_llm(GlobalState):
     """Verify EconLLMAgent creates Action with PolicyDecision"""
     # Given: Mock LLM returning PolicyDecision
     mock_client = AsyncMock()
@@ -54,7 +51,7 @@ async def test_econ_agent_generates_policy_with_llm():
 
 
 @pytest.mark.asyncio
-async def test_econ_agent_constructs_economic_prompt():
+async def test_econ_agent_constructs_economic_prompt(GlobalState):
     """Verify prompt includes GDP, inflation, unemployment, interest rate"""
     # Given: EconLLMAgent
     mock_client = AsyncMock()
@@ -112,7 +109,7 @@ def test_econ_agent_validates_economic_keywords():
 
 
 @pytest.mark.asyncio
-async def test_econ_agent_flexible_action_string():
+async def test_econ_agent_flexible_action_string(GlobalState):
     """Verify action is string, not enum"""
     # Given: EconLLMAgent with flexible action
     mock_client = AsyncMock()

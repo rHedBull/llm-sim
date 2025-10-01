@@ -63,6 +63,9 @@ class TestBackwardCompatibilityDefaults:
 
     def test_deprecation_warning_is_logged(self, caplog, capsys):
         """Should log deprecation warning when using defaults."""
+        import logging
+        caplog.set_level(logging.WARNING)
+
         config = SimulationConfig(
             simulation={"name": "Test", "max_turns": 10},
             engine={"type": "economic"},
@@ -72,14 +75,23 @@ class TestBackwardCompatibilityDefaults:
 
         get_variable_definitions(config)
 
-        # Check for deprecation warning in captured output (structlog writes to stdout)
-        captured = capsys.readouterr()
-        assert "state_variables" in captured.out
-        assert "legacy" in captured.out.lower()
+        # Check for deprecation warning in captured logs (caplog) and captured output (capsys)
+        log_messages = [record.message for record in caplog.records]
+        log_text = " ".join(log_messages)
 
-    def test_explicit_state_variables_no_warning(self, capsys):
+        # Also check captured stdout/stderr in case structlog writes there
+        captured = capsys.readouterr()
+        combined_output = log_text + captured.out + captured.err
+
+        assert "state_variables" in combined_output
+        assert "legacy" in combined_output.lower()
+
+    def test_explicit_state_variables_no_warning(self, caplog, capsys):
         """Should NOT log warning when state_variables is explicit."""
+        import logging
         from llm_sim.models.config import StateVariablesConfig, VariableDefinition
+
+        caplog.set_level(logging.WARNING)
 
         config = SimulationConfig(
             simulation={"name": "Test", "max_turns": 10},
@@ -94,6 +106,9 @@ class TestBackwardCompatibilityDefaults:
 
         get_variable_definitions(config)
 
-        # Should NOT have deprecation warning in output
+        # Should NOT have deprecation warning in logs or captured output
+        log_messages = [record.message for record in caplog.records]
+        log_text = " ".join(log_messages)
         captured = capsys.readouterr()
-        assert "legacy" not in captured.out.lower()
+        combined_output = log_text + captured.out + captured.err
+        assert "legacy" not in combined_output.lower()

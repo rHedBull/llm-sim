@@ -12,17 +12,15 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 # These imports will fail until implementation is complete
-try:
-    from llm_sim.implementations.engines.econ_llm_engine import EconLLMEngine
-    from llm_sim.models.llm_models import StateUpdateDecision
-    from llm_sim.models.action import Action
-    from llm_sim.models.state import SimulationState, GlobalState
-except ImportError:
-    pytest.skip("EconLLMEngine not yet implemented", allow_module_level=True)
+# Import implementations
+from llm_sim.implementations.engines.econ_llm_engine import EconLLMEngine
+from llm_sim.models.llm_models import StateUpdateDecision
+from llm_sim.models.state import SimulationState
+from llm_sim.models.action import Action
 
 
 @pytest.mark.asyncio
-async def test_econ_engine_processes_validated_action():
+async def test_econ_engine_processes_validated_action(GlobalState):
     """Verify engine updates state based on LLM decision"""
     # Given: Mock LLM returning new interest rate
     mock_client = AsyncMock()
@@ -64,7 +62,7 @@ async def test_econ_engine_processes_validated_action():
     assert new_state.turn == 2
 
 
-def test_econ_engine_constructs_economic_prompt():
+def test_econ_engine_constructs_economic_prompt(GlobalState):
     """Verify prompt includes current rate and action"""
     # Given: EconLLMEngine
     mock_client = AsyncMock()
@@ -92,7 +90,7 @@ def test_econ_engine_constructs_economic_prompt():
     assert "Lower interest rates" in prompt or action.action_name in prompt
 
 
-def test_econ_engine_applies_interest_rate_update():
+def test_econ_engine_applies_interest_rate_update(GlobalState):
     """Verify _apply_state_update only updates interest_rate field"""
     # Given: EconLLMEngine
     mock_client = AsyncMock()
@@ -129,7 +127,7 @@ def test_econ_engine_applies_interest_rate_update():
 
 
 @pytest.mark.asyncio
-async def test_econ_engine_sequential_aggregation():
+async def test_econ_engine_sequential_aggregation(GlobalState):
     """Verify multiple actions applied sequentially"""
     # Given: Mock LLM with sequential responses
     mock_client = AsyncMock()

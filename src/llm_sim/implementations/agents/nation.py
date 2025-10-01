@@ -49,7 +49,9 @@ class NationAgent(BaseAgent):
 
         action_name = self.strategy  # Use strategy directly as action name
 
-        current_strength = state.agents[self.name].economic_strength
+        # Get economic_strength if available (backward compatibility)
+        agent_state = state.agents[self.name]
+        current_strength = getattr(agent_state, "economic_strength", 0.0)
 
         action = Action(
             agent_name=self.name,

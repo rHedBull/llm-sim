@@ -1,5 +1,4 @@
 """Contract tests for BaseAgent interface.
-from llm_sim.models.state import GlobalState
 
 These tests verify that the BaseAgent abstract interface remains stable
 and that concrete implementations properly inherit from it.
@@ -62,10 +61,8 @@ class TestBaseAgentContract:
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
             IncompleteAgent(name="test")
 
-    def test_receive_state_updates_internal_state(self):
+    def test_receive_state_updates_internal_state(self, GlobalState):
         """receive_state should update the agent's internal state."""
-        from llm_sim.models.state import GlobalState
-
         class ConcreteAgent(BaseAgent):
             def decide_action(self, state: SimulationState) -> Action:
                 return Action(agent_name=self.name, action_name="test")

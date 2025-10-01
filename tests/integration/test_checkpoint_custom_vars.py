@@ -44,26 +44,25 @@ class TestCheckpointCustomVars:
     def test_run_simulation_with_custom_variables(self, checkpoint_config, tmp_path):
         """Should run simulation with custom variables."""
         config = load_config(checkpoint_config)
-        orchestrator = Orchestrator(config, output_dir=tmp_path)
+        orchestrator = Orchestrator(config, output_root=tmp_path)
 
         state = orchestrator.initialize()
 
-        # Run a few turns
+        # Run a few turns using internal methods
         for _ in range(5):
-            state = orchestrator.step(state)
+            state = orchestrator._run_turn_sync(state)
 
         assert state.turn == 5
 
     def test_create_checkpoint_with_custom_vars(self, checkpoint_config, tmp_path):
         """Should create checkpoint containing custom variables."""
         config = load_config(checkpoint_config)
-        orchestrator = Orchestrator(config, output_dir=tmp_path)
+        orchestrator = Orchestrator(config, output_root=tmp_path)
 
         state = orchestrator.initialize()
 
-        # Create checkpoint
-        checkpoint_manager = CheckpointManager(output_dir=tmp_path, run_id="test_run")
-        checkpoint_path = checkpoint_manager.save(state, config)
+        # Create checkpoint using orchestrator's checkpoint manager
+        checkpoint_path = orchestrator.checkpoint_manager.save_checkpoint(state, "interval")
 
         # Verify checkpoint exists
         assert checkpoint_path.exists()
@@ -71,12 +70,11 @@ class TestCheckpointCustomVars:
     def test_checkpoint_contains_all_custom_agent_variables(self, checkpoint_config, tmp_path):
         """Checkpoint should contain all custom agent variables."""
         config = load_config(checkpoint_config)
-        orchestrator = Orchestrator(config, output_dir=tmp_path)
+        orchestrator = Orchestrator(config, output_root=tmp_path)
 
         state = orchestrator.initialize()
 
-        checkpoint_manager = CheckpointManager(output_dir=tmp_path, run_id="test_run")
-        checkpoint_path = checkpoint_manager.save(state, config)
+        checkpoint_path = orchestrator.checkpoint_manager.save_checkpoint(state, "interval")
 
         # Load and inspect checkpoint
         with open(checkpoint_path) as f:
@@ -89,12 +87,11 @@ class TestCheckpointCustomVars:
     def test_checkpoint_contains_all_custom_global_variables(self, checkpoint_config, tmp_path):
         """Checkpoint should contain all custom global variables."""
         config = load_config(checkpoint_config)
-        orchestrator = Orchestrator(config, output_dir=tmp_path)
+        orchestrator = Orchestrator(config, output_root=tmp_path)
 
         state = orchestrator.initialize()
 
-        checkpoint_manager = CheckpointManager(output_dir=tmp_path, run_id="test_run")
-        checkpoint_path = checkpoint_manager.save(state, config)
+        checkpoint_path = orchestrator.checkpoint_manager.save_checkpoint(state, "interval")
 
         # Load and inspect checkpoint
         with open(checkpoint_path) as f:
@@ -107,12 +104,11 @@ class TestCheckpointCustomVars:
     def test_checkpoint_metadata_includes_schema_hash(self, checkpoint_config, tmp_path):
         """Checkpoint metadata should include schema_hash."""
         config = load_config(checkpoint_config)
-        orchestrator = Orchestrator(config, output_dir=tmp_path)
+        orchestrator = Orchestrator(config, output_root=tmp_path)
 
         state = orchestrator.initialize()
 
-        checkpoint_manager = CheckpointManager(output_dir=tmp_path, run_id="test_run")
-        checkpoint_path = checkpoint_manager.save(state, config)
+        checkpoint_path = orchestrator.checkpoint_manager.save_checkpoint(state, "interval")
 
         # Load and inspect checkpoint
         with open(checkpoint_path) as f:
