@@ -56,8 +56,15 @@ class CheckpointMetadata(BaseModel):
         return v
 
 
+class CheckpointFile(BaseModel):
+    """A checkpoint file with metadata and state (new format for feature 007)."""
+
+    metadata: CheckpointMetadata = Field(..., description="Checkpoint metadata with schema hash")
+    state: SimulationState = Field(..., description="Complete simulation state")
+
+
 class Checkpoint(BaseModel):
-    """A checkpoint snapshot of simulation state."""
+    """A checkpoint snapshot of simulation state (legacy format)."""
 
     turn: int = Field(..., description="Turn number when checkpoint was saved")
     checkpoint_type: Literal["interval", "last", "final"] = Field(..., description="Type of checkpoint")

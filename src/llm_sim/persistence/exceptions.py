@@ -23,3 +23,9 @@ class RunIDCollisionError(CheckpointError):
     """Raised when run ID collision cannot be resolved."""
 
     pass
+
+
+class SchemaCompatibilityError(CheckpointError):
+    """Raised when checkpoint schema_hash doesn't match current config."""
+
+    pass
