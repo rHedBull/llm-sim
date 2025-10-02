@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Observation Format Schema",
+  "description": "Schema for agent observations in partial observability mode. Observations have the same structure as SimulationState but with filtered content.",
+  "type": "object",
+  "properties": {
+    "turn": {
+      "type": "integer",
+      "description": "Current simulation turn number (same as ground truth)",
+      "minimum": 0
+    },
+    "agents": {
+      "type": "object",
+      "description": "Dictionary of observable agents (filtered based on observability matrix)",
+      "patternProperties": {
+        "^[A-Za-z0-9_]+$": {
+          "type": "object",
+          "description": "Agent state with potentially filtered variables and noisy values",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Agent name (always present)"
+            }
+          },
+          "required": ["name"],
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "global_state": {
+      "type": "object",
+      "description": "Global state with potentially filtered variables and noisy values",
+      "additionalProperties": true
+    },
+    "reasoning_chains": {
+      "type": "array",
+      "description": "Always empty in observations (agents don't see others' reasoning)",
+      "maxItems": 0,
+      "items": {}
+    }
+  },
+  "required": ["turn", "agents", "global_state", "reasoning_chains"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "turn": 5,
+      "agents": {
+        "Agent1": {
+          "name": "Agent1",
+          "economic_strength": 105.3
+        },
+        "Agent2": {
+          "name": "Agent2",
+          "economic_strength": 94.7
+        }
+      },
+      "global_state": {
+        "interest_rate": 0.052,
+        "inflation": 0.028
+      },
+      "reasoning_chains": []
+    }
+  ],
+  "notes": [
+    "Observations are structurally identical to SimulationState",
+    "agents dict may be a subset of ground truth agents (unaware targets excluded)",
+    "Agent state objects may have fewer fields than ground truth (internal variables filtered)",
+    "Numeric values may differ from ground truth due to noise application",
+    "reasoning_chains is always empty - agents don't observe others' reasoning"
+  ]
+}
