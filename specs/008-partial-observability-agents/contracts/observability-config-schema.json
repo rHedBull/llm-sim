@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Observability Configuration Schema",
+  "description": "Schema for partial observability configuration in llm_sim",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Enable or disable partial observability (false = full observability)"
+    },
+    "variable_visibility": {
+      "type": "object",
+      "description": "Classification of state variables as external (public) or internal (private)",
+      "properties": {
+        "external": {
+          "type": "array",
+          "description": "List of public variable names visible to external observers",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        },
+        "internal": {
+          "type": "array",
+          "description": "List of private variable names only visible to insiders",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        }
+      },
+      "required": ["external", "internal"],
+      "additionalProperties": false
+    },
+    "matrix": {
+      "type": "array",
+      "description": "Observability matrix defining observer-target relationships",
+      "items": {
+        "type": "array",
+        "description": "Observability entry: [observer, target, level, noise]",
+        "minItems": 4,
+        "maxItems": 4,
+        "items": [
+          {
+            "type": "string",
+            "description": "Observer agent name"
+          },
+          {
+            "type": "string",
+            "description": "Target agent name or 'global' for global state"
+          },
+          {
+            "type": "string",
+            "enum": ["unaware", "external", "insider"],
+            "description": "Observability level"
+          },
+          {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "description": "Noise factor (>= 0.0) or null for unaware"
+          }
+        ]
+      }
+    },
+    "default": {
+      "type": "object",
+      "description": "Default observability for undefined observer-target pairs",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["unaware", "external", "insider"],
+          "description": "Default observability level"
+        },
+        "noise": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Default noise factor"
+        }
+      },
+      "required": ["level", "noise"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["enabled", "variable_visibility", "matrix"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "enabled": true,
+      "variable_visibility": {
+        "external": ["economic_strength", "position"],
+        "internal": ["secret_reserves", "hidden_strategy"]
+      },
+      "matrix": [
+        ["Agent1", "Agent1", "insider", 0.0],
+        ["Agent1", "Agent2", "external", 0.2],
+        ["Agent1", "global", "external", 0.1],
+        ["Agent2", "Agent1", "unaware", null],
+        ["Agent2", "global", "insider", 0.0]
+      ],
+      "default": {
+        "level": "external",
+        "noise": 0.15
+      }
+    }
+  ]
+}

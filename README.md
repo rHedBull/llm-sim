@@ -13,6 +13,7 @@
 - **Base classes** for agents, engines, and validators
 - **LLM integration patterns** for reasoning agents
 - **State management** with dynamic variables
+- **Partial observability** for realistic information asymmetry
 - **Checkpoint system** with schema validation
 - **Orchestration** for running simulations
 - **Component discovery** mechanism
@@ -145,6 +146,39 @@ state_variables:
 
 The framework dynamically generates Pydantic models from these definitions.
 
+### Partial Observability
+
+Control what information each agent can see - enabling realistic information asymmetry:
+
+```yaml
+observability:
+  enabled: true
+  variable_visibility:
+    external: [economic_strength, position]
+    internal: [secret_reserves, strategy]
+
+  matrix:
+    # Agent1 sees Agent2's public data with 20% noise
+    - [Agent1, Agent2, external, 0.2]
+    # Agent1 unaware of Agent3
+    - [Agent1, Agent3, unaware, null]
+    # Agent1 sees global state with 10% noise
+    - [Agent1, global, external, 0.1]
+
+  default:
+    level: external
+    noise: 0.1
+```
+
+**Features:**
+- Three observability levels: `unaware`, `external`, `insider`
+- Deterministic noise for reproducible testing
+- Asymmetric visibility between agents
+- Global state observability control
+- Backward compatible (disabled by default)
+
+See [Simulation Guide](docs/SIMULATION_GUIDE.md) for complete details.
+
 ### Checkpointing
 
 Automatic state persistence with schema validation:
@@ -189,13 +223,11 @@ Includes:
 
 ## Documentation
 
+- **[Simulation Guide](docs/SIMULATION_GUIDE.md)** - Complete guide to creating simulations with observability
 - **[Platform Architecture](docs/PLATFORM_ARCHITECTURE.md)** - Control plane design (dashboard, MCP server)
-- **[Architecture Overview](docs/ARCHITECTURE.md)** - Framework internals
-- **[Configuration Guide](docs/CONFIGURATION.md)** - YAML configuration reference
-- **[LLM Setup](docs/LLM_SETUP.md)** - Using LLMs with the framework
 - **[Real-Time Simulation](docs/REALTIME_SIMULATION.md)** - Event-driven simulation design
 - **[Compute Budget Simulation](docs/COMPUTE_BUDGET_SIMULATION.md)** - Turn-based with resource constraints
-- **[API Reference](docs/API.md)** - Extending the framework
+- **[Migration Guide](docs/MIGRATION.md)** - Upgrading between versions
 
 ---
 

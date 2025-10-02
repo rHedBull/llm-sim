@@ -1,7 +1,9 @@
 """Configuration models for the simulation."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, field_validator, model_validator
 import structlog
 import yaml
@@ -167,6 +169,21 @@ class SimulationConfig(BaseModel):
     logging: Optional[LoggingConfig] = None  # Optional for backward compatibility
     llm: Optional[LLMConfig] = None  # Optional for backward compatibility
     state_variables: Optional[StateVariablesConfig] = None  # Optional for backward compatibility
+    observability: Optional[Any] = None  # Optional for backward compatibility - parsed in validator
+
+    @field_validator("observability", mode="before")
+    @classmethod
+    def parse_observability(cls, v: Any) -> Any:
+        """Parse observability config with deferred import to avoid circular dependency."""
+        if v is None:
+            return None
+
+        # Import here to avoid circular dependency
+        from llm_sim.infrastructure.observability.config import ObservabilityConfig
+
+        if isinstance(v, ObservabilityConfig):
+            return v
+        return ObservabilityConfig(**v)
 
     @model_validator(mode="after")
     def validate_unique_agent_names(self) -> "SimulationConfig":
@@ -174,6 +191,66 @@ class SimulationConfig(BaseModel):
         agent_names = [agent.name for agent in self.agents]
         if len(agent_names) != len(set(agent_names)):
             raise ValueError("All agent names must be unique, found duplicates")
+        return self
+
+    @model_validator(mode="after")
+    def validate_observability_references(self) -> "SimulationConfig":
+        """Cross-validate observability config against agent and variable names."""
+        if self.observability is None:
+            return self
+
+        # Get agent names
+        agent_names = {agent.name for agent in self.agents}
+        agent_list = sorted(agent_names)
+
+        # Validate observers and targets in matrix
+        for entry in self.observability.matrix:
+            if entry.observer not in agent_names:
+                raise ValueError(
+                    f"Unknown observer '{entry.observer}' in observability matrix. "
+                    f"Available agents: {agent_list}. "
+                    f"Remediation: Verify the observer name matches an agent defined in the 'agents' list."
+                )
+            if entry.target != "global" and entry.target not in agent_names:
+                valid_targets = agent_list + ["global"]
+                raise ValueError(
+                    f"Unknown target '{entry.target}' in observability matrix. "
+                    f"Available targets: {valid_targets}. "
+                    f"Remediation: Verify the target name matches an agent defined in the 'agents' list, "
+                    f"or use 'global' for global state."
+                )
+
+        # Validate variable names if state_variables is configured
+        if self.state_variables is not None:
+            agent_var_names = set(self.state_variables.agent_vars.keys())
+            global_var_names = set(self.state_variables.global_vars.keys())
+            all_var_names = agent_var_names | global_var_names
+            all_var_list = sorted(all_var_names)
+
+            for var_name in self.observability.variable_visibility.external:
+                if var_name not in all_var_names:
+                    agent_vars = sorted(agent_var_names)
+                    global_vars = sorted(global_var_names)
+                    raise ValueError(
+                        f"Unknown variable '{var_name}' in external visibility list. "
+                        f"Available variables: {all_var_list} "
+                        f"(agent variables: {agent_vars}, global variables: {global_vars}). "
+                        f"Remediation: Verify the variable name matches a variable defined in "
+                        f"'state_variables.agent_vars' or 'state_variables.global_vars'."
+                    )
+
+            for var_name in self.observability.variable_visibility.internal:
+                if var_name not in all_var_names:
+                    agent_vars = sorted(agent_var_names)
+                    global_vars = sorted(global_var_names)
+                    raise ValueError(
+                        f"Unknown variable '{var_name}' in internal visibility list. "
+                        f"Available variables: {all_var_list} "
+                        f"(agent variables: {agent_vars}, global variables: {global_vars}). "
+                        f"Remediation: Verify the variable name matches a variable defined in "
+                        f"'state_variables.agent_vars' or 'state_variables.global_vars'."
+                    )
+
         return self
 
 

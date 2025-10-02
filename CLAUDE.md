@@ -24,9 +24,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 008-partial-observability-agents: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 007-we-want-to: Added Python 3.12 + Pydantic 2.x (data modeling), PyYAML 6.x (config parsing), structlog 24.x (logging)
 - 006-persistent-storage-specifically: Added Python 3.12 + Pydantic 2.x (serialization), PyYAML 6.x (config), structlog 24.x (logging)
-- 005-we-want-to: Added Python 3.12 + Pydantic 2.x, PyYAML 6.x, structlog 24.x, ollama, httpx
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

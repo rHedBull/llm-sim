@@ -11,6 +11,7 @@ from llm_sim.models.action import Action
 from llm_sim.models.config import SimulationConfig, get_variable_definitions
 from llm_sim.models.state import SimulationState
 from llm_sim.models.checkpoint import RunMetadata, SimulationResults
+from llm_sim.models.observation import construct_observation
 from llm_sim.persistence.checkpoint_manager import CheckpointManager
 from llm_sim.persistence.run_id_generator import RunIDGenerator
 from llm_sim.utils.llm_client import LLMClient
@@ -408,8 +409,20 @@ class SimulationOrchestrator:
 
         # Collect actions from agents
         actions: List[Action] = []
-        for agent in self.agents:
-            action = await agent.decide_action(state)
+        for agent_name, agent in self.agents.items():
+            # Construct observation for this agent based on observability config
+            if self.config.observability and self.config.observability.enabled:
+                observation = construct_observation(agent_name, state, self.config.observability)
+                logger.debug(
+                    "constructing_observation",
+                    observer=agent_name,
+                    turn=state.turn,
+                    visible_agents=list(observation.agents.keys())
+                )
+            else:
+                observation = state  # Full observability (backward compatible)
+
+            action = await agent.decide_action(observation)
             actions.append(action)
 
         # Validate actions
@@ -435,8 +448,20 @@ class SimulationOrchestrator:
 
         # Collect actions from agents
         actions: List[Action] = []
-        for agent in self.agents:
-            action = agent.decide_action(state)
+        for agent_name, agent in self.agents.items():
+            # Construct observation for this agent based on observability config
+            if self.config.observability and self.config.observability.enabled:
+                observation = construct_observation(agent_name, state, self.config.observability)
+                logger.debug(
+                    "constructing_observation",
+                    observer=agent_name,
+                    turn=state.turn,
+                    visible_agents=list(observation.agents.keys())
+                )
+            else:
+                observation = state  # Full observability (backward compatible)
+
+            action = agent.decide_action(observation)
             actions.append(action)
 
         # Validate actions

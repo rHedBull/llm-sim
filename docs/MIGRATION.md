@@ -342,6 +342,36 @@ from llm_sim.implementations.agents.nation import NationAgent
 - See [Base Classes Reference](patterns/base_classes.md) for interface documentation
 - See [LLM Pattern Documentation](patterns/llm_pattern.md) for LLM integration
 
+## New Features Available After Migration
+
+### Partial Observability (v0.2.0+)
+
+After migrating to the new structure, you can use the partial observability feature:
+
+```yaml
+observability:
+  enabled: true
+  variable_visibility:
+    external: [economic_strength, position]
+    internal: [secret_reserves, strategy]
+  matrix:
+    - [Agent1, Agent2, external, 0.2]
+    - [Agent1, Agent3, unaware, null]
+  default:
+    level: external
+    noise: 0.1
+```
+
+**Benefits:**
+- Realistic information asymmetry between agents
+- Configurable noise levels for observations
+- Three observability levels: unaware, external, insider
+- Backward compatible (disabled by default)
+
+See [Simulation Guide](SIMULATION_GUIDE.md#partial-observability) for complete documentation.
+
+---
+
 ## Summary
 
 | What | Old | New |
@@ -351,5 +381,6 @@ from llm_sim.implementations.agents.nation import NationAgent
 | **Implementations** | `llm_sim.agents.nation` | `llm_sim.implementations.agents.nation` |
 | **YAML configs** | ✅ No change | ✅ No change |
 | **Discovery loading** | ❌ Not available | ✅ Automatic |
+| **Observability** | ❌ Not available | ✅ Optional feature |
 
 **Migration effort**: Low - mostly import path updates, YAML configs unchanged.
