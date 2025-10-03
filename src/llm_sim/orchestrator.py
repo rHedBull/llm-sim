@@ -16,6 +16,8 @@ from llm_sim.persistence.checkpoint_manager import CheckpointManager
 from llm_sim.persistence.run_id_generator import RunIDGenerator
 from llm_sim.utils.llm_client import LLMClient
 from llm_sim.utils.logging import configure_logging, get_logger
+from llm_sim.infrastructure.lifecycle.manager import LifecycleManager
+from llm_sim.infrastructure.base.agent import BaseAgent
 
 logger = get_logger(__name__)
 
@@ -49,6 +51,7 @@ class SimulationOrchestrator:
         self.engine = self._create_engine()
         self.agents = self._create_agents(agent_strategies)
         self.validator = self._create_validator()
+        self.lifecycle_manager = LifecycleManager()  # Lifecycle management
 
         # Generate unique run ID
         self.start_time = datetime.now()
@@ -216,6 +219,73 @@ class SimulationOrchestrator:
 
         # Fall back to basic initialization
         return ValidatorClass()
+
+    # Lifecycle Management Methods
+
+    def add_agent(self, name: str, agent: BaseAgent, initial_state: Dict[str, Any]) -> str:
+        """Add agent to simulation at runtime.
+
+        Args:
+            name: Proposed agent name
+            agent: Agent instance
+            initial_state: Initial state for agent
+
+        Returns:
+            Resolved agent name (may differ if collision)
+        """
+        # Note: This requires a current state context
+        # For now, we'll need to get the current state from engine or history
+        if self.history:
+            current_state = self.history[-1]
+            return self.lifecycle_manager.add_agent(name, agent, initial_state, current_state)
+        else:
+            raise RuntimeError("Cannot add agent before simulation has started. Initialize state first.")
+
+    def remove_agent(self, name: str) -> bool:
+        """Remove agent from simulation.
+
+        Args:
+            name: Agent name to remove
+
+        Returns:
+            True if removed, False if validation failed
+        """
+        if self.history:
+            current_state = self.history[-1]
+            return self.lifecycle_manager.remove_agent(name, current_state)
+        else:
+            raise RuntimeError("Cannot remove agent before simulation has started. Initialize state first.")
+
+    def pause_agent(self, name: str, auto_resume_turns: Optional[int] = None) -> bool:
+        """Pause an agent.
+
+        Args:
+            name: Agent name to pause
+            auto_resume_turns: Optional turns until auto-resume
+
+        Returns:
+            True if paused, False if validation failed
+        """
+        if self.history:
+            current_state = self.history[-1]
+            return self.lifecycle_manager.pause_agent(name, auto_resume_turns, current_state)
+        else:
+            raise RuntimeError("Cannot pause agent before simulation has started. Initialize state first.")
+
+    def resume_agent(self, name: str) -> bool:
+        """Resume a paused agent.
+
+        Args:
+            name: Agent name to resume
+
+        Returns:
+            True if resumed, False if validation failed
+        """
+        if self.history:
+            current_state = self.history[-1]
+            return self.lifecycle_manager.resume_agent(name, current_state)
+        else:
+            raise RuntimeError("Cannot resume agent before simulation has started. Initialize state first.")
 
     def initialize(self) -> SimulationState:
         """Initialize simulation state.
@@ -403,6 +473,9 @@ class SimulationOrchestrator:
         Returns:
             New state after turn
         """
+        # Process auto-resume at turn start
+        self.lifecycle_manager.process_auto_resume(state)
+
         # Distribute state to agents
         for agent in self.agents:
             agent.receive_state(state)
@@ -443,13 +516,17 @@ class SimulationOrchestrator:
         Returns:
             New state after turn execution
         """
+        # Process auto-resume at turn start
+        self.lifecycle_manager.process_auto_resume(state)
+
         # Distribute state to agents
         for agent in self.agents:
             agent.receive_state(state)
 
         # Collect actions from agents
         actions: List[Action] = []
-        for agent_name, agent in self.agents.items():
+        for agent in self.agents:
+            agent_name = agent.name
             # Construct observation for this agent based on observability config
             if self.config.observability and self.config.observability.enabled:
                 observation = construct_observation(agent_name, state, self.config.observability)
