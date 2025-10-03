@@ -39,7 +39,7 @@
 
 ## Phase 3.1: Setup (Prerequisites)
 
-### T001: Create lifecycle subsystem structure
+### T001: [X] Create lifecycle subsystem structure
 **Path**: `src/llm_sim/infrastructure/lifecycle/`
 **Action**: Create directory and `__init__.py`
 ```bash
@@ -47,14 +47,14 @@ mkdir -p src/llm_sim/infrastructure/lifecycle
 touch src/llm_sim/infrastructure/lifecycle/__init__.py
 ```
 
-### T002: [P] Configure test structure for lifecycle
+### T002: [X] [P] Configure test structure for lifecycle
 **Path**: `tests/contract/`, `tests/integration/`, `tests/unit/`
 **Action**: Ensure test directories exist (likely already present)
 ```bash
 mkdir -p tests/contract tests/integration tests/unit
 ```
 
-### T003: [P] Verify development tools
+### T003: [X] [P] Verify development tools
 **Path**: Repository root
 **Action**: Confirm uv, pytest, black, mypy, ruff configured
 ```bash
@@ -71,7 +71,7 @@ uv run mypy --version
 
 ### Contract Tests (Parallel - Different Files)
 
-#### T004: [P] Contract test: PauseTracker.pause()
+#### T004: [X] [P] Contract test: PauseTracker.pause()
 **Path**: `tests/contract/test_pause_tracker_pause.py`
 **Contract**: `contracts/pause_tracker_contract.md` - `pause()` method
 **Action**: Test preconditions, postconditions, side effects
@@ -79,101 +79,101 @@ uv run mypy --version
 - Auto-resume metadata set if provided
 - No validation performed (assumes pre-validated)
 
-#### T005: [P] Contract test: PauseTracker.resume()
+#### T005: [X] [P] Contract test: PauseTracker.resume()
 **Path**: `tests/contract/test_pause_tracker_resume.py`
 **Contract**: `contracts/pause_tracker_contract.md` - `resume()` method
 **Action**: Test returns True/False, removes from paused set and auto_resume dict
 
-#### T006: [P] Contract test: PauseTracker.tick_auto_resume()
+#### T006: [X] [P] Contract test: PauseTracker.tick_auto_resume()
 **Path**: `tests/contract/test_pause_tracker_tick.py`
 **Contract**: `contracts/pause_tracker_contract.md` - `tick_auto_resume()` method
 **Action**: Test counter decrement, auto-resume at 0, list of resumed agents
 
-#### T007: [P] Contract test: LifecycleManager.add_agent()
+#### T007: [X] [P] Contract test: LifecycleManager.add_agent()
 **Path**: `tests/contract/test_lifecycle_manager_add.py`
 **Contract**: `contracts/lifecycle_manager_contract.md` - `add_agent()` method
 **Action**: Test collision resolution, max agent limit (25), resolved name return
 
-#### T008: [P] Contract test: LifecycleManager.remove_agent()
+#### T008: [X] [P] Contract test: LifecycleManager.remove_agent()
 **Path**: `tests/contract/test_lifecycle_manager_remove.py`
 **Contract**: `contracts/lifecycle_manager_contract.md` - `remove_agent()` method
 **Action**: Test agent removal from dict, paused set, auto_resume dict
 
-#### T009: [P] Contract test: LifecycleManager.pause_agent()
+#### T009: [X] [P] Contract test: LifecycleManager.pause_agent()
 **Path**: `tests/contract/test_lifecycle_manager_pause.py`
 **Contract**: `contracts/lifecycle_manager_contract.md` - `pause_agent()` method
 **Action**: Test pause addition, auto_resume configuration, validation failures
 
-#### T010: [P] Contract test: LifecycleManager.resume_agent()
+#### T01: [X]0: [P] Contract test: LifecycleManager.resume_agent()
 **Path**: `tests/contract/test_lifecycle_manager_resume.py`
 **Contract**: `contracts/lifecycle_manager_contract.md` - `resume_agent()` method
 **Action**: Test resume removal from paused set, validation failures
 
 ### Integration Tests (Parallel - Different Files)
 
-#### T011: [P] Integration test: Add agent at runtime (Scenario 1)
+#### T01: [X]1: [P] Integration test: Add agent at runtime (Scenario 1)
 **Path**: `tests/integration/test_add_agent_runtime.py`
 **Scenario**: Acceptance scenario 1 from spec.md
 **Action**: Test adding agent with initial state, agent participates in next turn
 
-#### T012: [P] Integration test: Remove agent at runtime (Scenario 2)
+#### T01: [X]2: [P] Integration test: Remove agent at runtime (Scenario 2)
 **Path**: `tests/integration/test_remove_agent_runtime.py`
 **Scenario**: Acceptance scenario 2 from spec.md
 **Action**: Test agent removal, no future participation, data excluded
 
-#### T013: [P] Integration test: Pause agent (Scenario 3)
+#### T01: [X]3: [P] Integration test: Pause agent (Scenario 3)
 **Path**: `tests/integration/test_pause_agent.py`
 **Scenario**: Acceptance scenario 3 from spec.md
 **Action**: Test agent skips turns, state retained
 
-#### T014: [P] Integration test: Resume agent (Scenario 4)
+#### T01: [X]4: [P] Integration test: Resume agent (Scenario 4)
 **Path**: `tests/integration/test_resume_agent.py`
 **Scenario**: Acceptance scenario 4 from spec.md
 **Action**: Test agent resumes from preserved state
 
-#### T015: [P] Integration test: Agent self-removal (Scenario 5)
+#### T01: [X]5: [P] Integration test: Agent self-removal (Scenario 5)
 **Path**: `tests/integration/test_agent_self_removal.py`
 **Scenario**: Acceptance scenario 5 from spec.md
 **Action**: Test agent requests own removal, validation passes, agent removed
 
-#### T016: [P] Integration test: Agent spawning (Scenario 6)
+#### T01: [X]6: [P] Integration test: Agent spawning (Scenario 6)
 **Path**: `tests/integration/test_agent_spawning.py`
 **Scenario**: Acceptance scenario 6 from spec.md
 **Action**: Test agent spawns new agent, count < 25, validation passes
 
-#### T017: [P] Integration test: Auto-resume after N turns (Scenario 7)
+#### T01: [X]7: [P] Integration test: Auto-resume after N turns (Scenario 7)
 **Path**: `tests/integration/test_auto_resume.py`
 **Scenario**: Acceptance scenario 7 from spec.md
 **Action**: Test paused agent auto-resumes after specified turns
 
-#### T018: [P] Integration test: Multiple lifecycle changes in one turn (Scenario 8)
+#### T01: [X]8: [P] Integration test: Multiple lifecycle changes in one turn (Scenario 8)
 **Path**: `tests/integration/test_multiple_lifecycle_changes.py`
 **Scenario**: Acceptance scenario 8 from spec.md
 **Action**: Test atomic application of all lifecycle changes after turn
 
 ### Edge Case Tests (Parallel - Different Files)
 
-#### T019: [P] Edge case test: Duplicate name collision
+#### T01: [X]9: [P] Edge case test: Duplicate name collision
 **Path**: `tests/unit/test_name_collision.py`
 **Edge Case**: Auto-rename with numeric suffix
 **Action**: Test `agent` → `agent_1` → `agent_2` pattern
 
-#### T020: [P] Edge case test: Max agent limit (25)
+#### T02: [X]0: [P] Edge case test: Max agent limit (25)
 **Path**: `tests/unit/test_max_agent_limit.py`
 **Edge Case**: Validation failure when adding 26th agent
 **Action**: Test validation fails, logs warning, agent not added
 
-#### T021: [P] Edge case test: Pause already-paused agent
+#### T02: [X]1: [P] Edge case test: Pause already-paused agent
 **Path**: `tests/unit/test_pause_already_paused.py`
 **Edge Case**: Validation failure, logged warning
 **Action**: Test returns False, logs warning
 
-#### T022: [P] Edge case test: Resume non-paused agent
+#### T02: [X]2: [P] Edge case test: Resume non-paused agent
 **Path**: `tests/unit/test_resume_non_paused.py`
 **Edge Case**: Validation failure, logged warning
 **Action**: Test returns False, logs warning
 
-#### T023: [P] Edge case test: Last agent removal
+#### T02: [X]3: [P] Edge case test: Last agent removal
 **Path**: `tests/unit/test_last_agent_removal.py`
 **Edge Case**: Allowed (simulation can have 0 agents)
 **Action**: Test agent removed successfully, state has 0 agents
@@ -186,28 +186,28 @@ uv run mypy --version
 
 ### Models (Parallel - Different Files)
 
-#### T024: [P] Create LifecycleOperation enum
+#### T02: [X]4: [P] Create LifecycleOperation enum
 **Path**: `src/llm_sim/models/lifecycle.py`
 **Data Model**: `data-model.md` - LifecycleOperation enum
 **Action**: Define `ADD_AGENT`, `REMOVE_AGENT`, `PAUSE_AGENT`, `RESUME_AGENT`
 
-#### T025: [P] Create LifecycleAction model
+#### T02: [X]5: [P] Create LifecycleAction model
 **Path**: `src/llm_sim/models/lifecycle.py`
 **Data Model**: `data-model.md` - LifecycleAction entity
 **Action**: Pydantic model with operation, initiating_agent, target_agent_name, initial_state, auto_resume_turns
 
-#### T026: [P] Create ValidationResult model
+#### T02: [X]6: [P] Create ValidationResult model
 **Path**: `src/llm_sim/models/lifecycle.py`
 **Data Model**: `data-model.md` - ValidationResult entity
 **Action**: Pydantic model with valid, reason, warnings fields
 
-#### T027: Modify SimulationState: agents List → Dict
+#### T02: [X]7: Modify SimulationState: agents List → Dict
 **Path**: `src/llm_sim/models/state.py`
 **Data Model**: `data-model.md` - SimulationState modifications
 **Action**: Change `agents: List[Agent]` to `agents: Dict[str, Agent]`
 **Breaking Change**: Migration required for existing code
 
-#### T028: Add pause tracking fields to SimulationState
+#### T02: [X]8: Add pause tracking fields to SimulationState
 **Path**: `src/llm_sim/models/state.py`
 **Data Model**: `data-model.md` - SimulationState new fields
 **Action**: Add `paused_agents: Set[str]`, `auto_resume: Dict[str, int]`
@@ -215,20 +215,20 @@ uv run mypy --version
 
 ### Core Components (Sequential - Dependencies)
 
-#### T029: Implement PauseTracker class
+#### T02: [X]9: Implement PauseTracker class
 **Path**: `src/llm_sim/infrastructure/lifecycle/pause_tracker.py`
 **Data Model**: `data-model.md` - PauseTracker entity
 **Contract**: `contracts/pause_tracker_contract.md`
 **Action**: Implement pause(), resume(), is_paused(), tick_auto_resume(), serialization
 **Makes Pass**: T004, T005, T006
 
-#### T030: Implement LifecycleValidator class
+#### T03: [X]0: Implement LifecycleValidator class
 **Path**: `src/llm_sim/infrastructure/lifecycle/validator.py`
 **Data Model**: `data-model.md` - LifecycleValidator entity
 **Action**: Implement validate_add(), validate_remove(), validate_pause(), validate_resume()
 **Depends On**: T024, T025, T026 (model dependencies)
 
-#### T031: Implement LifecycleManager class
+#### T03: [X]1: Implement LifecycleManager class
 **Path**: `src/llm_sim/infrastructure/lifecycle/manager.py`
 **Data Model**: `data-model.md` - LifecycleManager entity
 **Contract**: `contracts/lifecycle_manager_contract.md`
@@ -242,25 +242,25 @@ uv run mypy --version
 
 **Dependency**: Phase 3.3 core implementation complete
 
-#### T032: Integrate LifecycleManager with SimulationOrchestrator
+#### T03: [X]2: Integrate LifecycleManager with SimulationOrchestrator
 **Path**: `src/llm_sim/orchestrator.py`
 **Plan**: `plan.md` - Orchestrator modifications
 **Action**: Add lifecycle_manager instance, expose add_agent(), remove_agent(), pause_agent(), resume_agent() methods
 **Makes Pass**: T011, T012, T013, T014
 
-#### T033: Modify Engine to separate lifecycle actions
+#### T03: [X]3: Modify Engine to separate lifecycle actions
 **Path**: `src/llm_sim/infrastructure/base/engine.py`
 **Plan**: `plan.md` - Engine modifications
 **Action**: Extract lifecycle actions in separate phase after regular actions
 **Makes Pass**: T015, T016, T018
 
-#### T034: Implement process_auto_resume in turn execution
+#### T03: [X]4: Implement process_auto_resume in turn execution
 **Path**: `src/llm_sim/orchestrator.py` or `engine.py`
 **Action**: Call lifecycle_manager.process_auto_resume() at turn start
 **Depends On**: T032
 **Makes Pass**: T017
 
-#### T035: Update CheckpointManager for dict-based agent serialization
+#### T03: [X]5: Update CheckpointManager for dict-based agent serialization
 **Path**: `src/llm_sim/persistence/checkpoint_manager.py`
 **Plan**: `plan.md` - Persistence modifications
 **Action**: Serialize agents dict, paused_agents set, auto_resume dict
@@ -272,29 +272,29 @@ uv run mypy --version
 
 **Dependency**: Phase 3.4 integration complete
 
-#### T036: Migrate agent iteration patterns (list → dict)
+#### T03: [X]6: Migrate agent iteration patterns (list → dict)
 **Path**: All files accessing `state.agents`
 **Action**: Update `for agent in state.agents` → `for agent in state.agents.values()`
 **Breaking Change**: Find all occurrences, update systematically
 **Verification**: `uv run grep -r "for agent in.*\.agents[^.]" src/`
 
-#### T037: Migrate agent access patterns (index → name)
+#### T03: [X]7: Migrate agent access patterns (index → name)
 **Path**: All files accessing agents by index
 **Action**: Update `state.agents[i]` → `state.agents[name]`
 **Breaking Change**: Find all occurrences, update systematically
 **Verification**: `uv run grep -r "\.agents\[" src/`
 
-#### T038: [P] Add unit tests for LifecycleValidator
+#### T03: [X]8: [P] Add unit tests for LifecycleValidator
 **Path**: `tests/unit/test_lifecycle_validator.py`
 **Action**: Unit tests for each validation method
 **Depends On**: T030
 
-#### T039: Run full test suite and fix regressions
+#### T03: [X]9: Run full test suite and fix regressions
 **Path**: Repository root
 **Action**: `uv run pytest tests/ -v --cov=src/llm_sim`
 **Verification**: All tests pass, coverage ≥ 90% for lifecycle subsystem
 
-#### T040: Execute quickstart validation scenarios
+#### T04: [X]0: Execute quickstart validation scenarios
 **Path**: `specs/009-dynamic-agent-management/quickstart.md`
 **Action**: Run all 5 quickstart scripts, verify expected outputs
 **Final Validation**: Feature complete and validated

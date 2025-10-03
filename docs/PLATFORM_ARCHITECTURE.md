@@ -1309,17 +1309,17 @@ api_keys:
 - ✅ 14 economic e2e tests + 3 contract tests passing
 - ✅ Discovery mechanism works with external repos
 
-### Phase 1 Completion
+### Phase 1 Completion done
 - ✅ Can start 5 simulations concurrently
 - ✅ Can query status of any simulation
 - ✅ Can cancel running simulations
 
-### Phase 2 Completion
+### Phase 2 Completion done
 - ✅ REST API fully functional
 - ✅ WebSocket streams real-time updates
 - ✅ OpenAPI docs generated
 
-### Phase 3 Completion
+### Phase 3 Completion in progress
 - ✅ Dashboard displays all simulations
 - ✅ Can start simulation from web UI
 - ✅ Real-time charts update correctly
