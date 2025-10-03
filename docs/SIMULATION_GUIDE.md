@@ -10,12 +10,13 @@
 2. [Configuration Structure](#configuration-structure)
 3. [State Variables](#state-variables)
 4. [Partial Observability](#partial-observability)
-5. [Agent Configuration](#agent-configuration)
-6. [Engine Configuration](#engine-configuration)
-7. [Validator Configuration](#validator-configuration)
-8. [LLM Integration](#llm-integration)
-9. [Checkpointing](#checkpointing)
-10. [Complete Examples](#complete-examples)
+5. [Dynamic Agent Management](#dynamic-agent-management)
+6. [Agent Configuration](#agent-configuration)
+7. [Engine Configuration](#engine-configuration)
+8. [Validator Configuration](#validator-configuration)
+9. [LLM Integration](#llm-integration)
+10. [Checkpointing](#checkpointing)
+11. [Complete Examples](#complete-examples)
 
 ---
 
@@ -408,6 +409,374 @@ observability:
 - [Ally1, Ally2, insider, 0.0]
 # Neutral agents see public data
 - [Neutral1, Ally1, external, 0.2]
+```
+
+---
+
+## Dynamic Agent Management
+
+Control the agent population dynamically during simulation runtime. Agents can be added, removed, or temporarily paused without restarting the simulation.
+
+### Overview
+
+Dynamic agent management enables:
+- **Runtime population changes** - Add/remove agents at any turn
+- **Agent-initiated actions** - Agents can spawn, remove themselves, or pause
+- **External control** - Orchestrator can manage agents programmatically
+- **State preservation** - Paused agents retain their state for later resumption
+
+### Core Operations
+
+#### Adding Agents
+
+Add new agents during simulation with initial state:
+
+```python
+from llm_sim.orchestrator import SimulationOrchestrator
+
+orchestrator = SimulationOrchestrator.from_yaml("config.yaml")
+
+# Add agent with initial state
+orchestrator.add_agent(
+    agent_name="NewTrader",
+    initial_state={"wealth": 500.0, "risk_tolerance": 0.7}
+)
+```
+
+**Features:**
+- Agents begin participating in the next turn
+- Automatic name collision resolution (appends numeric suffix)
+- Validates against maximum agent limit (default: 25)
+
+**Name Collision Example:**
+```python
+orchestrator.add_agent("Trader")  # Creates "Trader"
+orchestrator.add_agent("Trader")  # Auto-renamed to "Trader_1"
+orchestrator.add_agent("Trader")  # Auto-renamed to "Trader_2"
+```
+
+#### Removing Agents
+
+Permanently remove agents from the simulation:
+
+```python
+orchestrator.remove_agent("OldTrader")
+```
+
+**Effects:**
+- Agent no longer participates in any future turns
+- Agent data excluded from active agent queries
+- If paused, also removed from pause tracking
+- State snapshots no longer include the removed agent
+
+#### Pausing Agents
+
+Temporarily deactivate agents while preserving their state:
+
+```python
+# Pause indefinitely
+orchestrator.pause_agent("Trader1")
+
+# Pause with auto-resume after N turns
+orchestrator.pause_agent("Trader1", auto_resume_turns=5)
+```
+
+**Pause Behavior:**
+- Agent skips all decision-making during pause
+- Complete state preserved while paused
+- Can be manually resumed or auto-resumed
+- Multiple agents can be paused simultaneously
+
+#### Resuming Agents
+
+Reactivate a paused agent:
+
+```python
+orchestrator.resume_agent("Trader1")
+```
+
+**Resume Behavior:**
+- Agent resumes participation from preserved state
+- Begins participating in the next turn
+- Auto-resume countdown canceled (if configured)
+
+### Agent-Initiated Lifecycle Changes
+
+Agents can request lifecycle changes through special lifecycle actions. These are separated from regular actions and processed after all turn actions complete.
+
+#### Agent Self-Removal
+
+Agents can request their own removal:
+
+```python
+# In your agent's decide_action method
+from llm_sim.models.lifecycle import LifecycleAction, LifecycleOperation
+
+def decide_action(self, state: SimulationState) -> Action:
+    if self.should_exit():
+        return LifecycleAction(
+            operation=LifecycleOperation.REMOVE_AGENT,
+            initiating_agent=self.name,
+            target_agent_name=self.name
+        )
+```
+
+#### Agent Spawning
+
+Agents can spawn new agents:
+
+```python
+def decide_action(self, state: SimulationState) -> Action:
+    if self.should_spawn_child():
+        return LifecycleAction(
+            operation=LifecycleOperation.ADD_AGENT,
+            initiating_agent=self.name,
+            target_agent_name="ChildAgent",
+            initial_state={"wealth": 100.0}
+        )
+```
+
+#### Agent Self-Pause
+
+Agents can request temporary pause:
+
+```python
+def decide_action(self, state: SimulationState) -> Action:
+    if self.should_hibernate():
+        return LifecycleAction(
+            operation=LifecycleOperation.PAUSE_AGENT,
+            initiating_agent=self.name,
+            target_agent_name=self.name,
+            auto_resume_turns=10  # Wake up after 10 turns
+        )
+```
+
+### Validation and Constraints
+
+All lifecycle operations undergo validation:
+
+**Maximum Agent Limit:**
+```python
+# Default: 25 agents maximum
+# Add operations fail if limit reached
+# Logged as warning, turn continues
+```
+
+**Basic Validation Checks:**
+- Agent exists (for remove/pause/resume)
+- Agent not already paused (for pause)
+- Agent is paused (for resume)
+- Count below maximum (for add)
+
+**Validation Failure Handling:**
+- Logged as warning
+- Operation skipped
+- Turn execution continues
+- No simulation halt
+
+### Turn Execution Flow
+
+Lifecycle changes follow a specific execution order:
+
+1. **Auto-Resume Processing** - Check and resume agents with elapsed auto-resume timers
+2. **Agent Decision Phase** - Active agents decide actions (including lifecycle actions)
+3. **Action Validation** - Regular actions validated
+4. **Regular Actions** - Validated actions executed by engine
+5. **Lifecycle Actions** - Lifecycle changes applied atomically
+6. **State Update** - Simulation state reflects all changes
+
+**Key Points:**
+- Only active (non-paused) agents participate in decisions
+- Lifecycle changes applied after all regular actions
+- Multiple lifecycle changes in one turn processed together
+- State updated atomically at turn end
+
+### Configuration
+
+No YAML configuration required - lifecycle management is built-in and always available.
+
+Optional configuration for custom limits:
+
+```python
+# In your engine or orchestrator setup
+lifecycle_manager = LifecycleManager(
+    max_agents=50  # Override default limit of 25
+)
+```
+
+### Auto-Resume Mechanism
+
+Paused agents can automatically resume after a specified number of turns:
+
+```python
+# External pause with auto-resume
+orchestrator.pause_agent("Agent1", auto_resume_turns=5)
+
+# Agent self-pause with auto-resume
+LifecycleAction(
+    operation=LifecycleOperation.PAUSE_AGENT,
+    target_agent_name=self.name,
+    auto_resume_turns=3
+)
+```
+
+**Auto-Resume Process:**
+- Counter decrements each turn
+- Agent automatically resumes when counter reaches 0
+- Manual resume cancels auto-resume countdown
+- Removing paused agent cancels auto-resume
+
+### Use Cases
+
+**1. Birth/Death Simulations**
+```python
+# Agent dies when resources depleted
+if self.wealth <= 0:
+    return LifecycleAction(
+        operation=LifecycleOperation.REMOVE_AGENT,
+        target_agent_name=self.name
+    )
+```
+
+**2. Dynamic Team Formation**
+```python
+# Spawn team member when successful
+if self.milestone_reached():
+    return LifecycleAction(
+        operation=LifecycleOperation.ADD_AGENT,
+        target_agent_name=f"{self.name}_Partner",
+        initial_state={"team_leader": self.name}
+    )
+```
+
+**3. Seasonal Activity**
+```python
+# Hibernate during off-season
+if self.is_winter():
+    return LifecycleAction(
+        operation=LifecycleOperation.PAUSE_AGENT,
+        target_agent_name=self.name,
+        auto_resume_turns=10  # Resume in spring
+    )
+```
+
+**4. A/B Testing**
+```python
+# Temporarily exclude agent for testing
+orchestrator.pause_agent("TestAgent")
+# Run simulation for N turns
+# ...
+orchestrator.resume_agent("TestAgent")
+```
+
+**5. Migration Patterns**
+```python
+# Agent migrates to different simulation
+orchestrator.remove_agent("MigratingAgent")
+# Transfer to different simulation instance
+other_sim.add_agent("MigratingAgent", initial_state=saved_state)
+```
+
+### Edge Cases
+
+**Last Agent Removal:**
+- Allowed - simulation can have 0 agents
+- No special handling required
+
+**Duplicate Pause Request:**
+- Validation fails (already paused)
+- Logged as warning
+- Original pause state preserved
+
+**Resume Non-Paused Agent:**
+- Validation fails (not paused)
+- Logged as warning
+- No state change
+
+**Maximum Limit Reached:**
+- Add operations fail validation
+- Logged as warning
+- Agent not added
+
+**Agent References After Removal:**
+- Removed agents excluded from state
+- Other agents should handle missing references
+- No automatic cleanup of cross-references
+
+### Complete Example
+
+```python
+from llm_sim.orchestrator import SimulationOrchestrator
+from llm_sim.models.lifecycle import LifecycleAction, LifecycleOperation
+
+# Initialize simulation
+orchestrator = SimulationOrchestrator.from_yaml("config.yaml")
+
+# External control - add agent at runtime
+orchestrator.add_agent(
+    agent_name="NewTrader",
+    initial_state={"wealth": 1000.0}
+)
+
+# External control - pause for maintenance
+orchestrator.pause_agent("MaintenanceAgent", auto_resume_turns=5)
+
+# Run simulation
+# Agents can internally request lifecycle changes:
+#
+# class MyAgent(BaseAgent):
+#     def decide_action(self, state):
+#         if self.should_spawn():
+#             return LifecycleAction(
+#                 operation=LifecycleOperation.ADD_AGENT,
+#                 initiating_agent=self.name,
+#                 target_agent_name="Offspring",
+#                 initial_state={"parent": self.name}
+#             )
+
+result = orchestrator.run()
+
+# External control - remove agent after simulation
+orchestrator.remove_agent("TemporaryAgent")
+```
+
+### Best Practices
+
+**1. Validate State After Removals**
+```python
+# Check if referenced agent still exists
+if target_agent in state.agents:
+    # Interact with agent
+```
+
+**2. Use Auto-Resume for Temporary States**
+```python
+# Don't: Manual resume requires tracking
+orchestrator.pause_agent("Agent1")
+# ... track when to resume
+
+# Do: Let system auto-resume
+orchestrator.pause_agent("Agent1", auto_resume_turns=5)
+```
+
+**3. Handle Name Collisions Gracefully**
+```python
+# System auto-renames, but you might want to track
+actual_name = orchestrator.add_agent("Trader", initial_state)
+# actual_name might be "Trader_1" if "Trader" exists
+```
+
+**4. Set Appropriate Limits**
+```python
+# Consider your simulation scale
+lifecycle_manager = LifecycleManager(max_agents=100)
+```
+
+**5. Log Lifecycle Events**
+```python
+# Enable structured logging to track lifecycle changes
+logging:
+  level: "INFO"  # Or "DEBUG" for detailed lifecycle logs
 ```
 
 ---

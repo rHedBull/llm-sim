@@ -370,6 +370,158 @@ observability:
 
 See [Simulation Guide](SIMULATION_GUIDE.md#partial-observability) for complete documentation.
 
+### Dynamic Agent Management (v0.3.0+)
+
+**BREAKING CHANGE:** Agent storage has changed from `List[Agent]` to `Dict[str, Agent]`.
+
+#### What Changed
+
+**Before (v0.2.x):**
+```python
+# SimulationState.agents was a list
+state.agents: List[Agent]
+
+# Accessing agents by index
+agent = state.agents[0]
+
+# Iterating over agents
+for agent in state.agents:
+    process(agent)
+```
+
+**After (v0.3.0+):**
+```python
+# SimulationState.agents is now a dict keyed by agent name
+state.agents: Dict[str, Agent]
+
+# Accessing agents by name
+agent = state.agents["Agent1"]
+
+# Iterating over agents
+for agent in state.agents.values():
+    process(agent)
+
+# Getting agent names
+for name in state.agents.keys():
+    print(name)
+```
+
+#### Migration Steps
+
+**1. Update Agent Iteration:**
+
+```python
+# Old pattern
+for agent in state.agents:
+    print(agent.name)
+
+# New pattern
+for agent in state.agents.values():
+    print(agent.name)
+```
+
+**2. Update Agent Access:**
+
+```python
+# Old pattern - by index
+first_agent = state.agents[0]
+
+# New pattern - by name
+first_agent = state.agents["Agent1"]
+# Or get first agent from dict
+first_agent = next(iter(state.agents.values()))
+```
+
+**3. Update Agent Count:**
+
+```python
+# Old pattern
+num_agents = len(state.agents)
+
+# New pattern (same)
+num_agents = len(state.agents)
+```
+
+**4. Update Agent Lookups:**
+
+```python
+# Old pattern - find by name
+agent = next(a for a in state.agents if a.name == "Agent1")
+
+# New pattern - direct lookup
+agent = state.agents.get("Agent1")  # Returns None if not found
+# Or
+agent = state.agents["Agent1"]  # Raises KeyError if not found
+```
+
+#### Find and Replace
+
+Search for these patterns in your codebase:
+
+```bash
+# Find agent iteration patterns
+grep -r "for .* in .*\.agents:" .
+grep -r "for .* in state\.agents" .
+
+# Find agent index access
+grep -r "\.agents\[" .
+
+# Find list operations
+grep -r "\.agents\.append" .
+grep -r "\.agents\.remove" .
+```
+
+**Common replacements:**
+
+| Old Code | New Code |
+|----------|----------|
+| `for agent in state.agents:` | `for agent in state.agents.values():` |
+| `state.agents[i]` | `state.agents[name]` |
+| `state.agents.append(agent)` | `state.agents[agent.name] = agent` |
+| `state.agents.remove(agent)` | `del state.agents[agent.name]` |
+| `[a for a in state.agents if ...]` | `[a for a in state.agents.values() if ...]` |
+
+#### Benefits of Dict-Based Storage
+
+- **O(1) agent lookups** by name (was O(n) list search)
+- **Name-based access** more intuitive than index
+- **Supports dynamic agents** - add/remove by name
+- **No index invalidation** when agents removed
+- **Built-in uniqueness** enforcement by name
+
+#### Backward Compatibility
+
+**Not backward compatible** - you must update your code. No legacy support provided for list-based access.
+
+#### Dynamic Agent Management Features
+
+With dict-based storage, you can now:
+
+```python
+# Add agents at runtime
+orchestrator.add_agent("NewAgent", initial_state={"wealth": 100})
+
+# Remove agents by name
+orchestrator.remove_agent("OldAgent")
+
+# Pause/resume agents
+orchestrator.pause_agent("Agent1", auto_resume_turns=5)
+orchestrator.resume_agent("Agent1")
+
+# Agent-initiated lifecycle changes
+from llm_sim.models.lifecycle import LifecycleAction, LifecycleOperation
+
+# In agent.decide_action():
+return LifecycleAction(
+    operation=LifecycleOperation.ADD_AGENT,
+    initiating_agent=self.name,
+    target_agent_name="Offspring",
+    initial_state={"parent": self.name}
+)
+```
+
+See [Dynamic Agent Management](SIMULATION_GUIDE.md#dynamic-agent-management) for complete documentation.
+
 ---
 
 ## Summary
@@ -382,5 +534,9 @@ See [Simulation Guide](SIMULATION_GUIDE.md#partial-observability) for complete d
 | **YAML configs** | ✅ No change | ✅ No change |
 | **Discovery loading** | ❌ Not available | ✅ Automatic |
 | **Observability** | ❌ Not available | ✅ Optional feature |
+| **Agent storage** | `List[Agent]` | `Dict[str, Agent]` (v0.3.0+) |
+| **Dynamic agents** | ❌ Not available | ✅ Add/remove/pause at runtime (v0.3.0+) |
 
-**Migration effort**: Low - mostly import path updates, YAML configs unchanged.
+**Migration effort**:
+- v0.1.x → v0.2.0: Low - mostly import path updates, YAML configs unchanged
+- v0.2.x → v0.3.0: Medium - agent storage breaking change, update iteration patterns

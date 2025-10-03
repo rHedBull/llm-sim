@@ -15,6 +15,7 @@
 - **State management** with dynamic variables
 - **Partial observability** for realistic information asymmetry
 - **Checkpoint system** with schema validation
+- **Dynamic agent management** with lifecycle controls
 - **Orchestration** for running simulations
 - **Component discovery** mechanism
 
@@ -148,27 +149,7 @@ The framework dynamically generates Pydantic models from these definitions.
 
 ### Partial Observability
 
-Control what information each agent can see - enabling realistic information asymmetry:
-
-```yaml
-observability:
-  enabled: true
-  variable_visibility:
-    external: [economic_strength, position]
-    internal: [secret_reserves, strategy]
-
-  matrix:
-    # Agent1 sees Agent2's public data with 20% noise
-    - [Agent1, Agent2, external, 0.2]
-    # Agent1 unaware of Agent3
-    - [Agent1, Agent3, unaware, null]
-    # Agent1 sees global state with 10% noise
-    - [Agent1, global, external, 0.1]
-
-  default:
-    level: external
-    noise: 0.1
-```
+Control what information each agent can see - enabling realistic information asymmetry.
 
 **Features:**
 - Three observability levels: `unaware`, `external`, `insider`
@@ -177,7 +158,21 @@ observability:
 - Global state observability control
 - Backward compatible (disabled by default)
 
-See [Simulation Guide](docs/SIMULATION_GUIDE.md) for complete details.
+See [Simulation Guide](docs/SIMULATION_GUIDE.md#partial-observability) for complete details.
+
+### Dynamic Agent Management
+
+Add, remove, or pause agents during simulation runtime without restarts.
+
+**Core operations:**
+- Add agents with initial state
+- Remove agents permanently
+- Pause/resume agents while preserving state
+- Agent-initiated lifecycle changes (spawn, self-remove, self-pause)
+
+**Features:** External control, agent-initiated changes, auto-resume, name collision handling, validation with graceful failures.
+
+See [Simulation Guide](docs/SIMULATION_GUIDE.md#dynamic-agent-management) for complete details.
 
 ### Checkpointing
 
@@ -224,10 +219,11 @@ Includes:
 ## Documentation
 
 - **[Simulation Guide](docs/SIMULATION_GUIDE.md)** - Complete guide to creating simulations with observability
+- **[Agent Creation Guide](docs/AGENT_CREATION_GUIDE.md)** - How to create custom agents for your simulations
+- **[Migration Guide](docs/MIGRATION.md)** - Upgrading between versions
 - **[Platform Architecture](docs/PLATFORM_ARCHITECTURE.md)** - Control plane design (dashboard, MCP server)
 - **[Real-Time Simulation](docs/REALTIME_SIMULATION.md)** - Event-driven simulation design
 - **[Compute Budget Simulation](docs/COMPUTE_BUDGET_SIMULATION.md)** - Turn-based with resource constraints
-- **[Migration Guide](docs/MIGRATION.md)** - Upgrading between versions
 
 ---
 
