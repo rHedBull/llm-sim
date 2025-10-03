@@ -409,7 +409,8 @@ class SimulationOrchestrator:
 
         # Collect actions from agents
         actions: List[Action] = []
-        for agent_name, agent in self.agents.items():
+        for agent in self.agents:
+            agent_name = agent.name
             # Construct observation for this agent based on observability config
             if self.config.observability and self.config.observability.enabled:
                 observation = construct_observation(agent_name, state, self.config.observability)

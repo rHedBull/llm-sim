@@ -25,6 +25,8 @@ class SimulationState(BaseModel):
     agents: Dict[str, BaseModel]  # Values are dynamically created AgentState instances
     global_state: BaseModel  # Dynamically created GlobalState instance
     reasoning_chains: List[LLMReasoningChain] = Field(default_factory=list)
+    paused_agents: set[str] = Field(default_factory=set)  # Names of paused agents
+    auto_resume: Dict[str, int] = Field(default_factory=dict)  # agent_name → turns_remaining
 
     @field_serializer('agents')
     def serialize_agents(self, agents: Dict[str, BaseModel], _info):
@@ -35,6 +37,11 @@ class SimulationState(BaseModel):
     def serialize_global_state(self, global_state: BaseModel, _info):
         """Serialize global_state properly."""
         return global_state.model_dump()
+
+    @field_serializer('paused_agents')
+    def serialize_paused_agents(self, paused_agents: set[str], _info):
+        """Serialize paused_agents set as list for JSON compatibility."""
+        return sorted(list(paused_agents))  # Sorted for determinism
 
 
 def create_agent_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[BaseModel]:
