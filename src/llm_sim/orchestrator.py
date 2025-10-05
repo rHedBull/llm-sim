@@ -109,7 +109,8 @@ class SimulationOrchestrator:
         cls,
         path: str,
         output_root: Path = Path("output"),
-        implementations_root: Optional[Path] = None
+        implementations_root: Optional[Path] = None,
+        event_verbosity: VerbosityLevel = VerbosityLevel.ACTION
     ) -> "SimulationOrchestrator":
         """Load configuration from YAML file and create orchestrator.
 
@@ -117,6 +118,7 @@ class SimulationOrchestrator:
             path: Path to YAML configuration file
             output_root: Root directory for output files
             implementations_root: Optional root directory for implementations/ discovery
+            event_verbosity: Event streaming verbosity level (default: ACTION)
 
         Returns:
             Configured SimulationOrchestrator instance
@@ -125,7 +127,7 @@ class SimulationOrchestrator:
             config_data = yaml.safe_load(f)
 
         config = SimulationConfig(**config_data)
-        return cls(config, output_root=output_root, implementations_root=implementations_root)
+        return cls(config, output_root=output_root, implementations_root=implementations_root, event_verbosity=event_verbosity)
 
     def _configure_logging(self) -> None:
         """Configure logging based on config."""
