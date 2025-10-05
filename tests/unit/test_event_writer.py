@@ -89,7 +89,7 @@ async def test_event_writer_creates_timestamped_files(tmp_output_dir):
                 simulation_id="timestamp-test",
                 turn_number=i,
                 milestone_type="turn_start",
-                description="padding" * 200  # ~1.5KB
+                description="padding" * 50  # Under 500 char limit
             )
             event_writer.emit(event)
 
@@ -137,7 +137,7 @@ async def test_event_writer_rotation_size_limit(tmp_output_dir):
                 simulation_id="size-test",
                 turn_number=i,
                 milestone_type="turn_start",
-                description="x" * 1000
+                description="x" * 400  # Padding under 500 char limit
             )
             event_writer.emit(event)
 

@@ -185,8 +185,8 @@ class EventWriter:
 
     async def _rotate_file(self) -> None:
         """Rotate the current event file when size threshold exceeded."""
-        # Generate timestamped filename
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        # Generate timestamped filename with microseconds to avoid collisions
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
         rotated_file = self.output_dir / f"events_{timestamp}.jsonl"
 
         # Rename current file
