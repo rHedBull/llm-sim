@@ -17,7 +17,6 @@ class RunMetadata(BaseModel):
     start_time: datetime = Field(..., description="Simulation start time")
     end_time: Optional[datetime] = Field(None, description="Simulation end time")
     checkpoint_interval: Optional[int] = Field(None, description="Checkpoint interval in turns")
-    config_snapshot: dict = Field(..., description="Full simulation config for validation")
 
     @field_validator("run_id")
     @classmethod

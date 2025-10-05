@@ -182,6 +182,30 @@ class CheckpointManager:
 
         return sorted(turns)
 
+    def save_config(self, config: dict) -> Path:
+        """Save simulation config to disk as config.json.
+
+        Args:
+            config: Simulation config dictionary
+
+        Returns:
+            Path to saved config file
+
+        Raises:
+            CheckpointSaveError: On I/O failure
+        """
+        import json
+
+        config_path = self.run_dir / "config.json"
+
+        try:
+            JSONStorage.ensure_directory(self.run_dir)
+            with open(config_path, 'w') as f:
+                json.dump(config, f, indent=2, default=str)
+            return config_path
+        except Exception as e:
+            raise CheckpointSaveError(f"Failed to save config: {e}") from e
+
     def save_results(self, results: SimulationResults) -> Path:
         """Save simulation results to disk.
 

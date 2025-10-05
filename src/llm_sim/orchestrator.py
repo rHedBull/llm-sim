@@ -77,6 +77,9 @@ class SimulationOrchestrator:
             output_root=self.output_root
         )
 
+        # Save config.json to run directory
+        self.checkpoint_manager.save_config(self.config.model_dump())
+
         # Create run metadata
         self.run_metadata = RunMetadata(
             run_id=self.run_id,
@@ -84,8 +87,7 @@ class SimulationOrchestrator:
             num_agents=len(self.agents),
             start_time=self.start_time,
             end_time=None,
-            checkpoint_interval=self.config.simulation.checkpoint_interval,
-            config_snapshot=self.config.model_dump()
+            checkpoint_interval=self.config.simulation.checkpoint_interval
         )
 
         # State tracking
