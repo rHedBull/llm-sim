@@ -1,9 +1,16 @@
 """Simple economic engine for testing."""
 
+from pydantic import BaseModel
 from llm_sim.infrastructure.base.engine import BaseEngine
 from llm_sim.models.action import Action
 from llm_sim.models.config import SimulationConfig
 from llm_sim.models.state import SimulationState
+
+
+class SimpleGlobalState(BaseModel):
+    """Simple global state for testing."""
+    turn: int = 0
+    agent_wealth: dict = {}
 
 
 class SimpleEconomicEngine(BaseEngine):
@@ -13,6 +20,8 @@ class SimpleEconomicEngine(BaseEngine):
         """Initialize engine."""
         super().__init__(config)
         self.max_turns = 10  # Default max turns
+        # Initialize state on construction
+        self._state = self.initialize_state()
 
     def initialize_state(self) -> SimulationState:
         """Create initial simulation state.
@@ -20,8 +29,8 @@ class SimpleEconomicEngine(BaseEngine):
         Returns:
             Initial SimulationState
         """
-        # Get global_state from config if available, otherwise use default
-        global_state = getattr(self.config, 'global_state', None) or {"turn": 0}
+        # Create global state as BaseModel
+        global_state = SimpleGlobalState(turn=0, agent_wealth={})
 
         return SimulationState(
             turn=0,
@@ -38,31 +47,33 @@ class SimpleEconomicEngine(BaseEngine):
         Returns:
             Updated SimulationState
         """
-        if self._state is None:
-            raise RuntimeError("State not initialized")
+        # Get current state - orchestrator passes it via BaseEngine.run_turn
+        state = self.get_current_state()
 
-        # Create mutable copy of global_state
-        new_global_state = dict(self._state.global_state)
+        # Get current wealth dict
+        current_global: SimpleGlobalState = state.global_state
+        agent_wealth = dict(current_global.agent_wealth)
 
         # Process actions
         for action in actions:
-            if action.action_type == "trade":
+            if action.action_name == "trade":
                 # Simple trade processing
-                payload = action.action_payload
-                if "amount" in payload:
-                    # Update agent's wealth (simplified - just track in global_state)
-                    agent_id = action.agent_id
-                    if "agent_wealth" not in new_global_state:
-                        new_global_state["agent_wealth"] = {}
+                params = action.parameters
+                if params and "amount" in params:
+                    # Update agent's wealth
+                    agent_name = action.agent_name
+                    current_wealth = agent_wealth.get(agent_name, 1000)
+                    agent_wealth[agent_name] = current_wealth + params["amount"]
 
-                    current_wealth = new_global_state.get("agent_wealth", {}).get(agent_id, 1000)
-                    if "agent_wealth" not in new_global_state:
-                        new_global_state["agent_wealth"] = {}
-                    new_global_state["agent_wealth"][agent_id] = current_wealth + payload["amount"]
+        # Create new global state
+        new_global_state = SimpleGlobalState(
+            turn=current_global.turn,
+            agent_wealth=agent_wealth
+        )
 
         return SimulationState(
-            turn=self._state.turn,
-            agents=self._state.agents,
+            turn=state.turn,
+            agents=state.agents,
             global_state=new_global_state
         )
 
@@ -76,9 +87,11 @@ class SimpleEconomicEngine(BaseEngine):
             State after engine rules
         """
         # Simple increment turn counter
-        # Create new global_state dict with updated turn
-        new_global_state = dict(state.global_state)
-        new_global_state["turn"] = state.turn + 1
+        current_global: SimpleGlobalState = state.global_state
+        new_global_state = SimpleGlobalState(
+            turn=state.turn + 1,
+            agent_wealth=dict(current_global.agent_wealth)
+        )
 
         return SimulationState(
             turn=state.turn + 1,

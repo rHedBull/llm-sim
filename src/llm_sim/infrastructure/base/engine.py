@@ -111,7 +111,7 @@ class BaseEngine(ABC):
                         turn_number=self._state.turn + 1,
                         agent_id=action.agent_name,
                         action_type=action.action_name,
-                        action_payload=action.params or {},
+                        action_payload=action.parameters or {},
                         description=f"{action.agent_name} performed {action.action_name}"
                     )
                     self._event_writer.emit(event)

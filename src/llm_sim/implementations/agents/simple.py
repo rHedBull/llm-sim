@@ -27,8 +27,9 @@ class SimpleAgent(BaseAgent):
         Returns:
             Action to take
         """
-        # Simple action: trade if wealth exists
-        agent_wealth = state.agent_states.get(self.name, {}).get("wealth", 1000)
+        # Simple action: trade based on turn
+        # Get wealth from global_state (it's a BaseModel)
+        agent_wealth = getattr(state.global_state, 'agent_wealth', {}).get(self.name, 1000)
 
         # Alternate between positive and negative trades based on turn
         if state.turn % 2 == 0:
@@ -37,11 +38,8 @@ class SimpleAgent(BaseAgent):
             amount = -5
 
         return Action(
-            agent_id=self.name,
             agent_name=self.name,
-            action_type="trade",
             action_name="trade",
-            action_payload={"amount": amount},
-            params={"amount": amount},
+            parameters={"amount": amount},
             validated=False  # Will be validated by validator
         )

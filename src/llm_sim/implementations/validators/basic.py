@@ -24,24 +24,24 @@ class BasicValidator(BaseValidator):
             True if action is valid
         """
         # Basic validation - check action has required fields
-        if not action.agent_id:
+        if not action.agent_name:
             return False
 
-        if not action.action_type:
+        if not action.action_name:
             return False
 
         # Trade-specific validation
-        if action.action_type == "trade":
-            if "amount" not in action.action_payload:
+        if action.action_name == "trade":
+            if not action.parameters or "amount" not in action.parameters:
                 return False
 
             # Check if agent has enough wealth
-            agent_id = action.agent_id
-            amount = action.action_payload["amount"]
+            agent_name = action.agent_name
+            amount = action.parameters["amount"]
 
-            # Check wealth from global_state
-            agent_wealth = state.global_state.get("agent_wealth", {})
-            current_wealth = agent_wealth.get(agent_id, 1000)
+            # Check wealth from global_state (it's a BaseModel)
+            agent_wealth_dict = getattr(state.global_state, 'agent_wealth', {})
+            current_wealth = agent_wealth_dict.get(agent_name, 1000)
             if current_wealth + amount < 0:  # Can't go negative
                 return False
 
