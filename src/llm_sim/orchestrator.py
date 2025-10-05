@@ -340,84 +340,94 @@ class SimulationOrchestrator:
         """Run simulation synchronously (for non-LLM components)."""
         import asyncio
 
-        # Start event writer
-        asyncio.run(self.event_writer.start())
+        async def _run_with_event_writer():
+            """Run simulation with event writer in same async context."""
+            # Start event writer
+            await self.event_writer.start()
 
-        # Emit simulation_start milestone
-        start_event = create_milestone_event(
-            simulation_id=self.run_id,
-            turn_number=0,
-            milestone_type="simulation_start",
-            description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents"
-        )
-        self.event_writer.emit(start_event)
-
-        logger.info(
-            "simulation_starting",
-            name=self.config.simulation.name,
-            max_turns=self.config.simulation.max_turns,
-            num_agents=len(self.agents),
-            run_id=self.run_id,
-        )
-
-        # Initialize state
-        state = self.engine.initialize_state()
-        self.history.append(state)
-
-        # Run simulation turns
-        while not self.engine.check_termination(state):
-            # Emit turn_start milestone
-            turn_start_event = create_milestone_event(
+            # Emit simulation_start milestone
+            start_event = create_milestone_event(
                 simulation_id=self.run_id,
-                turn_number=state.turn + 1,
-                milestone_type="turn_start",
-                description=f"Turn {state.turn + 1} started"
+                turn_number=0,
+                milestone_type="simulation_start",
+                description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents"
             )
-            self.event_writer.emit(turn_start_event)
+            self.event_writer.emit(start_event)
 
-            state = self._run_turn_sync(state)
+            logger.info(
+                "simulation_starting",
+                name=self.config.simulation.name,
+                max_turns=self.config.simulation.max_turns,
+                num_agents=len(self.agents),
+                run_id=self.run_id,
+            )
+
+            # Initialize state
+            state = self.engine.initialize_state()
             self.history.append(state)
 
-            # Emit turn_end milestone
-            turn_end_event = create_milestone_event(
+            # Run simulation turns
+            while not self.engine.check_termination(state):
+                # Emit turn_start milestone
+                turn_start_event = create_milestone_event(
+                    simulation_id=self.run_id,
+                    turn_number=state.turn + 1,
+                    milestone_type="turn_start",
+                    description=f"Turn {state.turn + 1} started"
+                )
+                self.event_writer.emit(turn_start_event)
+
+                state = self._run_turn_sync(state)
+                self.history.append(state)
+
+                # Emit turn_end milestone
+                turn_end_event = create_milestone_event(
+                    simulation_id=self.run_id,
+                    turn_number=state.turn,
+                    milestone_type="turn_end",
+                    description=f"Turn {state.turn} completed"
+                )
+                self.event_writer.emit(turn_end_event)
+
+                # Check if we should save checkpoint
+                is_final = self.engine.check_termination(state)
+                if self.checkpoint_manager.should_save_checkpoint(state.turn, is_final):
+                    checkpoint_type = "final" if is_final else "interval"
+                    self.checkpoint_manager.save_checkpoint(state, checkpoint_type)
+                    logger.info(
+                        "checkpoint_saved",
+                        turn=state.turn,
+                        type=checkpoint_type,
+                    )
+
+                # Always save last checkpoint (overwrite each turn)
+                self.checkpoint_manager.save_checkpoint(state, "last")
+
+                # Log turn completion (safely handle dynamic global state)
+                log_data = {"turn": state.turn}
+                if hasattr(state.global_state, "total_economic_value"):
+                    log_data["total_value"] = state.global_state.total_economic_value
+                logger.info("turn_completed", **log_data)
+
+                # Yield control to event loop so writer task can process events
+                await asyncio.sleep(0.01)
+
+            # Emit simulation_end milestone
+            end_event = create_milestone_event(
                 simulation_id=self.run_id,
                 turn_number=state.turn,
-                milestone_type="turn_end",
-                description=f"Turn {state.turn} completed"
+                milestone_type="simulation_end",
+                description=f"Simulation completed after {state.turn} turns"
             )
-            self.event_writer.emit(turn_end_event)
+            self.event_writer.emit(end_event)
 
-            # Check if we should save checkpoint
-            is_final = self.engine.check_termination(state)
-            if self.checkpoint_manager.should_save_checkpoint(state.turn, is_final):
-                checkpoint_type = "final" if is_final else "interval"
-                self.checkpoint_manager.save_checkpoint(state, checkpoint_type)
-                logger.info(
-                    "checkpoint_saved",
-                    turn=state.turn,
-                    type=checkpoint_type,
-                )
+            # Stop event writer and flush events
+            await self.event_writer.stop(timeout=10.0)
 
-            # Always save last checkpoint (overwrite each turn)
-            self.checkpoint_manager.save_checkpoint(state, "last")
+            return state
 
-            # Log turn completion (safely handle dynamic global state)
-            log_data = {"turn": state.turn}
-            if hasattr(state.global_state, "total_economic_value"):
-                log_data["total_value"] = state.global_state.total_economic_value
-            logger.info("turn_completed", **log_data)
-
-        # Emit simulation_end milestone
-        end_event = create_milestone_event(
-            simulation_id=self.run_id,
-            turn_number=state.turn,
-            milestone_type="simulation_end",
-            description=f"Simulation completed after {state.turn} turns"
-        )
-        self.event_writer.emit(end_event)
-
-        # Stop event writer and flush events
-        asyncio.run(self.event_writer.stop(timeout=10.0))
+        # Run everything in one async context
+        state = asyncio.run(_run_with_event_writer())
 
         # Update run metadata end time
         self.run_metadata = RunMetadata(

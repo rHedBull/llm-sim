@@ -137,7 +137,7 @@ class EventWriter:
         while self.running:
             try:
                 # Get event from queue
-                event = await asyncio.wait_for(self.queue.get(), timeout=1.0)
+                event = await asyncio.wait_for(self.queue.get(), timeout=0.1)
 
                 # Write event to file
                 await self._write_event(event)

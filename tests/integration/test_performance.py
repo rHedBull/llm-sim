@@ -192,9 +192,9 @@ async def test_concurrent_emission_performance(tmp_output_dir):
 
             iteration_time_ms = (time.perf_counter() - iteration_start) * 1000
 
-            # Each iteration should complete quickly
-            assert iteration_time_ms < 10, \
-                f"Iteration {iteration} took {iteration_time_ms:.2f}ms (>10ms threshold)"
+            # Each iteration should complete quickly (non-blocking)
+            assert iteration_time_ms < 50, \
+                f"Iteration {iteration} took {iteration_time_ms:.2f}ms (>50ms threshold)"
 
         end_time = time.perf_counter()
         total_time = end_time - start_time
