@@ -1,0 +1,221 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Event Stream Schema",
+  "description": "JSON Schema for simulation event logging",
+  "definitions": {
+    "BaseEvent": {
+      "type": "object",
+      "required": ["event_id", "timestamp", "turn_number", "event_type", "simulation_id"],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+          "description": "ULID identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp with microsecond precision"
+        },
+        "turn_number": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Simulation turn number"
+        },
+        "event_type": {
+          "type": "string",
+          "enum": ["MILESTONE", "DECISION", "ACTION", "STATE", "DETAIL", "SYSTEM"],
+          "description": "Event category"
+        },
+        "simulation_id": {
+          "type": "string",
+          "description": "Simulation run identifier"
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Agent identifier (optional, null for system events)"
+        },
+        "caused_by": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
+          "description": "Array of parent event ULIDs"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Human-readable event summary"
+        },
+        "details": {
+          "type": "object",
+          "description": "Type-specific structured payload"
+        }
+      }
+    },
+    "MilestoneEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/BaseEvent"},
+        {
+          "properties": {
+            "event_type": {"const": "MILESTONE"},
+            "details": {
+              "type": "object",
+              "required": ["milestone_type"],
+              "properties": {
+                "milestone_type": {
+                  "type": "string",
+                  "enum": ["turn_start", "turn_end", "phase_transition", "simulation_start", "simulation_end"]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DecisionEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/BaseEvent"},
+        {
+          "properties": {
+            "event_type": {"const": "DECISION"},
+            "agent_id": {"type": "string"},
+            "details": {
+              "type": "object",
+              "required": ["decision_type"],
+              "properties": {
+                "decision_type": {"type": "string"},
+                "old_value": {},
+                "new_value": {}
+              }
+            }
+          },
+          "required": ["agent_id"]
+        }
+      ]
+    },
+    "ActionEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/BaseEvent"},
+        {
+          "properties": {
+            "event_type": {"const": "ACTION"},
+            "agent_id": {"type": "string"},
+            "details": {
+              "type": "object",
+              "required": ["action_type", "action_payload"],
+              "properties": {
+                "action_type": {"type": "string"},
+                "action_payload": {"type": "object"}
+              }
+            }
+          },
+          "required": ["agent_id"]
+        }
+      ]
+    },
+    "StateEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/BaseEvent"},
+        {
+          "properties": {
+            "event_type": {"const": "STATE"},
+            "details": {
+              "type": "object",
+              "required": ["variable_name", "old_value", "new_value"],
+              "properties": {
+                "variable_name": {"type": "string"},
+                "old_value": {},
+                "new_value": {},
+                "scope": {"type": "string", "enum": ["global", "agent"]}
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DetailEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/BaseEvent"},
+        {
+          "properties": {
+            "event_type": {"const": "DETAIL"},
+            "details": {
+              "type": "object",
+              "required": ["calculation_type", "intermediate_values"],
+              "properties": {
+                "calculation_type": {"type": "string"},
+                "intermediate_values": {"type": "object"}
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SystemEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/BaseEvent"},
+        {
+          "properties": {
+            "event_type": {"const": "SYSTEM"},
+            "details": {
+              "type": "object",
+              "required": ["status"],
+              "properties": {
+                "error_type": {"type": "string"},
+                "status": {"type": "string", "enum": ["success", "failure", "retry", "warning"]},
+                "retry_count": {"type": "integer", "minimum": 0}
+              }
+            }
+          }
+        }
+      ]
+    },
+    "EventFilter": {
+      "type": "object",
+      "properties": {
+        "start_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "event_types": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["MILESTONE", "DECISION", "ACTION", "STATE", "DETAIL", "SYSTEM"]}
+        },
+        "agent_ids": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "turn_start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "turn_end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000,
+          "default": 1000
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {"$ref": "#/definitions/MilestoneEvent"},
+    {"$ref": "#/definitions/DecisionEvent"},
+    {"$ref": "#/definitions/ActionEvent"},
+    {"$ref": "#/definitions/StateEvent"},
+    {"$ref": "#/definitions/DetailEvent"},
+    {"$ref": "#/definitions/SystemEvent"}
+  ]
+}

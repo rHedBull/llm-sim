@@ -1,0 +1,324 @@
+openapi: 3.0.3
+info:
+  title: Event Stream API
+  description: API for querying simulation event streams
+  version: 1.0.0
+  contact:
+    name: LLM Simulation Framework
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+
+paths:
+  /simulations:
+    get:
+      summary: List all simulations
+      description: Returns a list of all simulations with event streams
+      operationId: listSimulations
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  simulations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SimulationSummary'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /simulations/{simulation_id}/events:
+    get:
+      summary: Get filtered events for a simulation
+      description: Returns events matching filter criteria with pagination
+      operationId: getEvents
+      parameters:
+        - $ref: '#/components/parameters/SimulationId'
+        - $ref: '#/components/parameters/StartTimestamp'
+        - $ref: '#/components/parameters/EndTimestamp'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/AgentIds'
+        - $ref: '#/components/parameters/TurnStart'
+        - $ref: '#/components/parameters/TurnEnd'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Successful response with filtered events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /simulations/{simulation_id}/events/{event_id}:
+    get:
+      summary: Get a single event by ID
+      description: Returns full details for a specific event
+      operationId: getEventById
+      parameters:
+        - $ref: '#/components/parameters/SimulationId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Event found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /simulations/{simulation_id}/causality/{event_id}:
+    get:
+      summary: Get causality chain for an event
+      description: Returns upstream and downstream causality relationships
+      operationId: getCausalityChain
+      parameters:
+        - $ref: '#/components/parameters/SimulationId'
+        - $ref: '#/components/parameters/EventId'
+        - name: depth
+          in: query
+          description: Maximum depth to traverse (default 5)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+      responses:
+        '200':
+          description: Causality chain found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CausalityChain'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  parameters:
+    SimulationId:
+      name: simulation_id
+      in: path
+      required: true
+      description: Unique simulation run identifier
+      schema:
+        type: string
+
+    EventId:
+      name: event_id
+      in: path
+      required: true
+      description: ULID event identifier
+      schema:
+        type: string
+        pattern: '^[0-9A-HJKMNP-TV-Z]{26}$'
+
+    StartTimestamp:
+      name: start_timestamp
+      in: query
+      description: Filter events after this timestamp (ISO 8601)
+      schema:
+        type: string
+        format: date-time
+
+    EndTimestamp:
+      name: end_timestamp
+      in: query
+      description: Filter events before this timestamp (ISO 8601)
+      schema:
+        type: string
+        format: date-time
+
+    EventTypes:
+      name: event_types
+      in: query
+      description: Filter by event types
+      schema:
+        type: array
+        items:
+          type: string
+          enum: [MILESTONE, DECISION, ACTION, STATE, DETAIL, SYSTEM]
+      style: form
+      explode: true
+
+    AgentIds:
+      name: agent_ids
+      in: query
+      description: Filter by agent identifiers
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
+      explode: true
+
+    TurnStart:
+      name: turn_start
+      in: query
+      description: Filter events from this turn number onwards
+      schema:
+        type: integer
+        minimum: 0
+
+    TurnEnd:
+      name: turn_end
+      in: query
+      description: Filter events up to this turn number
+      schema:
+        type: integer
+        minimum: 0
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of events to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 10000
+        default: 1000
+
+    Offset:
+      name: offset
+      in: query
+      description: Number of events to skip (pagination)
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  schemas:
+    SimulationSummary:
+      type: object
+      required: [id, name, start_time, event_count]
+      properties:
+        id:
+          type: string
+          description: Simulation run identifier
+        name:
+          type: string
+          description: Simulation name
+        start_time:
+          type: string
+          format: date-time
+          description: Simulation start timestamp
+        event_count:
+          type: integer
+          description: Total number of events
+
+    EventsResponse:
+      type: object
+      required: [events, total, has_more]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        total:
+          type: integer
+          description: Total matching events (before pagination)
+        has_more:
+          type: boolean
+          description: Whether more results exist beyond this page
+
+    Event:
+      type: object
+      required: [event_id, timestamp, turn_number, event_type, simulation_id]
+      properties:
+        event_id:
+          type: string
+          pattern: '^[0-9A-HJKMNP-TV-Z]{26}$'
+          description: ULID identifier
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp
+        turn_number:
+          type: integer
+          minimum: 0
+        event_type:
+          type: string
+          enum: [MILESTONE, DECISION, ACTION, STATE, DETAIL, SYSTEM]
+        simulation_id:
+          type: string
+        agent_id:
+          type: string
+          nullable: true
+        caused_by:
+          type: array
+          items:
+            type: string
+            pattern: '^[0-9A-HJKMNP-TV-Z]{26}$'
+        description:
+          type: string
+          maxLength: 500
+        details:
+          type: object
+          description: Event-specific structured data
+
+    CausalityChain:
+      type: object
+      required: [event_id, upstream, downstream]
+      properties:
+        event_id:
+          type: string
+          pattern: '^[0-9A-HJKMNP-TV-Z]{26}$'
+        event:
+          $ref: '#/components/schemas/Event'
+        upstream:
+          type: array
+          description: Events that caused this event (parents)
+          items:
+            $ref: '#/components/schemas/Event'
+        downstream:
+          type: array
+          description: Events caused by this event (children)
+          items:
+            $ref: '#/components/schemas/Event'
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: Simulation or event not found
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: INTERNAL_ERROR
+            message: An unexpected error occurred

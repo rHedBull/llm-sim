@@ -18,6 +18,7 @@ from llm_sim.utils.llm_client import LLMClient
 from llm_sim.utils.logging import configure_logging, get_logger
 from llm_sim.infrastructure.lifecycle.manager import LifecycleManager
 from llm_sim.infrastructure.base.agent import BaseAgent
+from llm_sim.infrastructure.events import EventWriter, VerbosityLevel, create_milestone_event
 
 logger = get_logger(__name__)
 
@@ -28,7 +29,8 @@ class SimulationOrchestrator:
     def __init__(
         self, config: SimulationConfig, agent_strategies: Optional[Dict[str, str]] = None,
         output_root: Path = Path("output"),
-        implementations_root: Optional[Path] = None
+        implementations_root: Optional[Path] = None,
+        event_verbosity: VerbosityLevel = VerbosityLevel.ACTION
     ) -> None:
         """Initialize orchestrator with configuration.
 
@@ -38,6 +40,7 @@ class SimulationOrchestrator:
             output_root: Root directory for output files
             implementations_root: Optional root directory for implementations/ discovery.
                                 If None, defaults to framework's directory (backward compat).
+            event_verbosity: Event streaming verbosity level (default: ACTION)
         """
         self.config = config
         self.output_root = output_root
@@ -87,6 +90,17 @@ class SimulationOrchestrator:
 
         # State tracking
         self.history: List[SimulationState] = []
+
+        # Initialize event writer for event streaming
+        output_dir = self.output_root / self.run_id
+        self.event_writer = EventWriter(
+            output_dir=output_dir,
+            simulation_id=self.run_id,
+            verbosity=event_verbosity
+        )
+
+        # Set event writer on engine for ACTION/STATE event emission
+        self.engine.set_event_writer(self.event_writer)
 
     @classmethod
     def from_yaml(
@@ -324,6 +338,20 @@ class SimulationOrchestrator:
 
     def _run_sync(self) -> Dict[str, Any]:
         """Run simulation synchronously (for non-LLM components)."""
+        import asyncio
+
+        # Start event writer
+        asyncio.run(self.event_writer.start())
+
+        # Emit simulation_start milestone
+        start_event = create_milestone_event(
+            simulation_id=self.run_id,
+            turn_number=0,
+            milestone_type="simulation_start",
+            description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents"
+        )
+        self.event_writer.emit(start_event)
+
         logger.info(
             "simulation_starting",
             name=self.config.simulation.name,
@@ -338,8 +366,26 @@ class SimulationOrchestrator:
 
         # Run simulation turns
         while not self.engine.check_termination(state):
+            # Emit turn_start milestone
+            turn_start_event = create_milestone_event(
+                simulation_id=self.run_id,
+                turn_number=state.turn + 1,
+                milestone_type="turn_start",
+                description=f"Turn {state.turn + 1} started"
+            )
+            self.event_writer.emit(turn_start_event)
+
             state = self._run_turn_sync(state)
             self.history.append(state)
+
+            # Emit turn_end milestone
+            turn_end_event = create_milestone_event(
+                simulation_id=self.run_id,
+                turn_number=state.turn,
+                milestone_type="turn_end",
+                description=f"Turn {state.turn} completed"
+            )
+            self.event_writer.emit(turn_end_event)
 
             # Check if we should save checkpoint
             is_final = self.engine.check_termination(state)
@@ -360,6 +406,18 @@ class SimulationOrchestrator:
             if hasattr(state.global_state, "total_economic_value"):
                 log_data["total_value"] = state.global_state.total_economic_value
             logger.info("turn_completed", **log_data)
+
+        # Emit simulation_end milestone
+        end_event = create_milestone_event(
+            simulation_id=self.run_id,
+            turn_number=state.turn,
+            milestone_type="simulation_end",
+            description=f"Simulation completed after {state.turn} turns"
+        )
+        self.event_writer.emit(end_event)
+
+        # Stop event writer and flush events
+        asyncio.run(self.event_writer.stop(timeout=10.0))
 
         # Update run metadata end time
         self.run_metadata = RunMetadata(
