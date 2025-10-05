@@ -98,12 +98,8 @@ async def populated_event_dir(tmp_path):
 @pytest.mark.asyncio
 async def test_api_filter_by_agent_id(populated_event_dir, monkeypatch):
     """T020: Verify API returns filtered events by agent_id."""
-    # Mock output directory for API
-    monkeypatch.setenv("EVENT_OUTPUT_DIR", str(populated_event_dir))
-
-    # Update app to use mocked directory
-    from llm_sim.api.services import event_service
-    event_service.EVENT_OUTPUT_DIR = populated_event_dir
+    # Set app state to use test directory
+    app.state.output_root = populated_event_dir
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get(
@@ -152,10 +148,8 @@ async def test_api_aggregates_rotated_files(tmp_path, monkeypatch):
         )
         f.write(json.dumps(event2.model_dump(mode="json")) + "\n")
 
-    # Mock output directory
-    monkeypatch.setenv("EVENT_OUTPUT_DIR", str(tmp_path / "output"))
-    from llm_sim.api.services import event_service
-    event_service.EVENT_OUTPUT_DIR = tmp_path / "output"
+    # Set app state to use test directory
+    app.state.output_root = tmp_path / "output"
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/simulations/rotation-sim/events")
@@ -171,9 +165,8 @@ async def test_api_aggregates_rotated_files(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_api_filter_by_turn_range(populated_event_dir, monkeypatch):
     """T022: Verify API filtering by turn range."""
-    monkeypatch.setenv("EVENT_OUTPUT_DIR", str(populated_event_dir))
-    from llm_sim.api.services import event_service
-    event_service.EVENT_OUTPUT_DIR = populated_event_dir
+    # Set app state to use test directory
+    app.state.output_root = populated_event_dir
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get(
@@ -196,9 +189,8 @@ async def test_api_filter_by_turn_range(populated_event_dir, monkeypatch):
 @pytest.mark.asyncio
 async def test_api_pagination(populated_event_dir, monkeypatch):
     """Verify API pagination with limit and offset."""
-    monkeypatch.setenv("EVENT_OUTPUT_DIR", str(populated_event_dir))
-    from llm_sim.api.services import event_service
-    event_service.EVENT_OUTPUT_DIR = populated_event_dir
+    # Set app state to use test directory
+    app.state.output_root = populated_event_dir
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Get first page
@@ -231,9 +223,8 @@ async def test_api_pagination(populated_event_dir, monkeypatch):
 @pytest.mark.asyncio
 async def test_api_list_simulations(populated_event_dir, monkeypatch):
     """Verify API lists all simulations with event streams."""
-    monkeypatch.setenv("EVENT_OUTPUT_DIR", str(populated_event_dir))
-    from llm_sim.api.services import event_service
-    event_service.EVENT_OUTPUT_DIR = populated_event_dir
+    # Set app state to use test directory
+    app.state.output_root = populated_event_dir
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/simulations")
