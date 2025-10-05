@@ -19,9 +19,6 @@ class SimpleEconomicEngine(BaseEngine):
     def __init__(self, config: SimulationConfig):
         """Initialize engine."""
         super().__init__(config)
-        self.max_turns = 10  # Default max turns
-        # Initialize state on construction
-        self._state = self.initialize_state()
 
     def initialize_state(self) -> SimulationState:
         """Create initial simulation state.
@@ -47,8 +44,13 @@ class SimpleEconomicEngine(BaseEngine):
         Returns:
             Updated SimulationState
         """
-        # Get current state - orchestrator passes it via BaseEngine.run_turn
-        state = self.get_current_state()
+        # Get current state (may be None on first call - use initialized state)
+        try:
+            state = self.get_current_state()
+        except RuntimeError:
+            # State not set yet - initialize it
+            state = self.initialize_state()
+            self._state = state
 
         # Get current wealth dict
         current_global: SimpleGlobalState = state.global_state
@@ -108,4 +110,6 @@ class SimpleEconomicEngine(BaseEngine):
         Returns:
             True if should terminate
         """
-        return state.turn >= self.max_turns
+        # Use max_turns from config
+        max_turns = self.config.simulation.max_turns
+        return state.turn >= max_turns
