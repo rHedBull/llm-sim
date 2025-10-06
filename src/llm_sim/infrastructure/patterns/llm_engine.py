@@ -11,8 +11,9 @@ from llm_sim.models.action import Action
 from llm_sim.models.llm_models import StateUpdateDecision, LLMReasoningChain
 from llm_sim.models.state import SimulationState
 from llm_sim.utils.llm_client import LLMClient
+from llm_sim.utils.logging import get_logger
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class LLMEngine(BaseEngine):

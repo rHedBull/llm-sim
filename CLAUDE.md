@@ -13,6 +13,8 @@ Auto-generated from all feature plans. Last updated: 2025-09-30
 - Python 3.12 + Pydantic 2.x (data models), PyYAML 6.x (config), structlog 24.x (logging) (009-dynamic-agent-management)
 - Python 3.12 + Pydantic 2.x (data models), structlog 24.x (logging), httpx (async I/O), FastAPI (API server) (010-event-stream-the)
 - File system (JSONL files in output/{run_id}/events*.jsonl) (010-event-stream-the)
+- Python 3.12 + structlog 24.x (existing), Python stdlib contextvars (011-logging-improvements-enhanced)
+- N/A (logging only - outputs to stdout/files) (011-logging-improvements-enhanced)
 
 ## Project Structure
 ```
@@ -27,9 +29,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 011-logging-improvements-enhanced: Added Python 3.12 + structlog 24.x (existing), Python stdlib contextvars
 - 010-event-stream-the: Added Python 3.12 + Pydantic 2.x (data models), structlog 24.x (logging), httpx (async I/O), FastAPI (API server)
 - 009-dynamic-agent-management: Added Python 3.12 + Pydantic 2.x (data models), PyYAML 6.x (config), structlog 24.x (logging)
-- 008-partial-observability-agents: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

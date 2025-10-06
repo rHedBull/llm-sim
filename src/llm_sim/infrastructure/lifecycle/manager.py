@@ -7,9 +7,7 @@ from llm_sim.infrastructure.lifecycle.pause_tracker import PauseTracker
 from llm_sim.infrastructure.lifecycle.validator import LifecycleValidator
 from llm_sim.infrastructure.base.agent import BaseAgent
 from llm_sim.models.state import SimulationState
-
-
-logger = structlog.get_logger()
+from llm_sim.utils.logging import get_logger
 
 
 class LifecycleManager:
@@ -26,7 +24,7 @@ class LifecycleManager:
         """
         self.validator = validator or LifecycleValidator()
         self.pause_tracker = pause_tracker or PauseTracker()
-        self.logger = logger.bind(component="lifecycle_manager")
+        self.logger = get_logger(__name__).bind(component="lifecycle_manager")
 
     def add_agent(
         self, name: str, agent: BaseAgent, initial_state: Dict[str, Any], state: SimulationState

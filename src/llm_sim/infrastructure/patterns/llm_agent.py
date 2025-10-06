@@ -10,8 +10,7 @@ from llm_sim.models.action import Action, LLMAction
 from llm_sim.models.llm_models import PolicyDecision
 from llm_sim.models.state import SimulationState
 from llm_sim.utils.llm_client import LLMClient
-
-logger = structlog.get_logger()
+from llm_sim.utils.logging import get_logger
 
 
 class LLMAgent(BaseAgent):
@@ -31,6 +30,8 @@ class LLMAgent(BaseAgent):
         """
         super().__init__(name=name)
         self.llm_client = llm_client
+        # Bind agent_id to instance logger
+        self.logger = get_logger(__name__).bind(agent_id=self.name, component="agent")
 
     @abstractmethod
     def _construct_prompt(self, state: SimulationState) -> str:
@@ -70,6 +71,9 @@ class LLMAgent(BaseAgent):
         """
         start_time = datetime.now()
 
+        # Log decision start
+        self.logger.info("decision_started", turn=state.turn)
+
         # Step 1: Construct domain-specific prompt
         prompt = self._construct_prompt(state)
 
@@ -83,19 +87,16 @@ class LLMAgent(BaseAgent):
 
         # Step 3: Validate decision
         if not self._validate_decision(decision):
-            logger.warning(
+            self.logger.warning(
                 "agent_decision_invalid",
-                agent=self.name,
                 action=decision.action,
                 reason="Failed domain validation"
             )
             # Still create action but mark as potentially problematic
 
         # Step 4: Log reasoning chain at DEBUG level
-        logger.debug(
+        self.logger.debug(
             "llm_reasoning_chain",
-            component="agent",
-            agent_name=self.name,
             reasoning=decision.reasoning,
             confidence=decision.confidence,
             duration_ms=duration_ms
@@ -109,6 +110,14 @@ class LLMAgent(BaseAgent):
             policy_decision=decision,
             parameters=getattr(decision, 'parameters', None),
             validated=False  # Will be set by validator
+        )
+
+        # Log decision completion
+        self.logger.info(
+            "decision_completed",
+            turn=state.turn,
+            action=decision.action,
+            duration_ms=duration_ms
         )
 
         return action

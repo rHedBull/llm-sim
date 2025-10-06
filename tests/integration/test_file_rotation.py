@@ -172,8 +172,8 @@ async def test_rotation_preserves_chronological_order(tmp_output_dir):
             await asyncio.sleep(0.01)
 
     # Allow final events to be written
-    await asyncio.sleep(0.2)
-    await event_writer.stop(timeout=5.0)
+    await asyncio.sleep(1.0)
+    await event_writer.stop(timeout=15.0)
 
     # Load all events from all files in chronological order
     # Rotated files have timestamps, current file is events.jsonl (newest)

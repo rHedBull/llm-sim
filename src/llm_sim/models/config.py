@@ -8,7 +8,7 @@ from pydantic import BaseModel, field_validator, model_validator
 import structlog
 import yaml
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 
 class TerminationConditions(BaseModel):
