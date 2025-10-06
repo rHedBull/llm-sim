@@ -14,9 +14,10 @@
 - 51 comprehensive tests passing (100% success rate)
 - All 478 project tests passing
 
-### 🚧 Next Steps
-- Server integration (llm-sim-server)
-- Request ID propagation from API to subprocess
+### 🚧 Next Steps (ALL IN llm-sim-server REPO)
+- Migrate llm-sim-server to use structlog
+- Add RequestIDMiddleware and HTTPLoggingMiddleware
+- Pass request_id from API to llm_sim subprocess via `log_context` parameter
 - End-to-end correlation testing
 
 ---
@@ -903,18 +904,20 @@ async def test_end_to_end_logging():
 - [x] Support multiple output formats (JSON/Console/Auto)
 - [x] Create comprehensive test suite (51 tests passing)
 
-### llm-sim-server
+### llm-sim-server (ALL REMAINING WORK HERE)
 
-- [ ] Add `structlog` to dependencies
-- [ ] Create `utils/logging.py` with unified config
+**Note:** All remaining tasks are in the llm-sim-server repository. The llm_sim library is ready to receive `log_context` from the server.
+
+- [ ] Add `structlog` to dependencies (pyproject.toml)
+- [ ] Create `utils/logging.py` with unified config (copy from llm_sim as base)
 - [ ] Replace all `logging` imports with structlog
-- [ ] Add `RequestIDMiddleware`
-- [ ] Add `HTTPLoggingMiddleware`
-- [ ] Update `simulation_manager.py` to pass `request_id` to subprocess
-- [ ] Update API routes to extract and pass `request_id`
+- [ ] Add `RequestIDMiddleware` to bind request_id to context
+- [ ] Add `HTTPLoggingMiddleware` to log HTTP requests/responses
+- [ ] Update `simulation_manager.py` to pass `request_id` via `log_context` parameter
+- [ ] Update API routes to extract and use request_id
 - [ ] Add metrics tracking (optional)
 - [ ] Add resource monitoring (optional)
-- [ ] Configure environment-based logging
+- [ ] Configure environment-based logging (auto format detection)
 
 ### Testing
 
