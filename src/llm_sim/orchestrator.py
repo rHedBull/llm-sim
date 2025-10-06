@@ -30,7 +30,8 @@ class SimulationOrchestrator:
         self, config: SimulationConfig, agent_strategies: Optional[Dict[str, str]] = None,
         output_root: Path = Path("output"),
         implementations_root: Optional[Path] = None,
-        event_verbosity: VerbosityLevel = VerbosityLevel.ACTION
+        event_verbosity: VerbosityLevel = VerbosityLevel.ACTION,
+        log_context: Optional[Dict[str, Any]] = None
     ) -> None:
         """Initialize orchestrator with configuration.
 
@@ -41,9 +42,11 @@ class SimulationOrchestrator:
             implementations_root: Optional root directory for implementations/ discovery.
                                 If None, defaults to framework's directory (backward compat).
             event_verbosity: Event streaming verbosity level (default: ACTION)
+            log_context: Optional external context to bind to logger (e.g., request_id)
         """
         self.config = config
         self.output_root = output_root
+        self.log_context = log_context
         self._configure_logging()
 
         # Initialize discovery mechanism
@@ -63,6 +66,13 @@ class SimulationOrchestrator:
             num_agents=len(self.agents),
             start_time=self.start_time,
             output_root=self.output_root
+        )
+
+        # Bind orchestrator-specific context to logger
+        self.logger = self._base_logger.bind(
+            run_id=self.run_id,
+            simulation_name=self.config.simulation.name,
+            component="orchestrator"
         )
 
         # Get variable definitions for schema hash
@@ -110,7 +120,8 @@ class SimulationOrchestrator:
         path: str,
         output_root: Path = Path("output"),
         implementations_root: Optional[Path] = None,
-        event_verbosity: VerbosityLevel = VerbosityLevel.ACTION
+        event_verbosity: VerbosityLevel = VerbosityLevel.ACTION,
+        log_context: Optional[Dict[str, Any]] = None
     ) -> "SimulationOrchestrator":
         """Load configuration from YAML file and create orchestrator.
 
@@ -119,6 +130,7 @@ class SimulationOrchestrator:
             output_root: Root directory for output files
             implementations_root: Optional root directory for implementations/ discovery
             event_verbosity: Event streaming verbosity level (default: ACTION)
+            log_context: Optional external context to bind to logger (e.g., request_id)
 
         Returns:
             Configured SimulationOrchestrator instance
@@ -127,14 +139,33 @@ class SimulationOrchestrator:
             config_data = yaml.safe_load(f)
 
         config = SimulationConfig(**config_data)
-        return cls(config, output_root=output_root, implementations_root=implementations_root, event_verbosity=event_verbosity)
+        return cls(
+            config,
+            output_root=output_root,
+            implementations_root=implementations_root,
+            event_verbosity=event_verbosity,
+            log_context=log_context
+        )
 
     def _configure_logging(self) -> None:
-        """Configure logging based on config."""
+        """Configure logging based on config and bind orchestrator context."""
+        # Configure logging with external context if provided
         if self.config.logging:
-            configure_logging(level=self.config.logging.level, format=self.config.logging.format)
+            base_logger = configure_logging(
+                level=self.config.logging.level,
+                format=self.config.logging.format,
+                bind_context=self.log_context
+            )
         else:
-            configure_logging(level="INFO", format="json")
+            base_logger = configure_logging(
+                level="INFO",
+                format="json",
+                bind_context=self.log_context
+            )
+
+        # Note: We'll bind orchestrator-specific context (run_id, simulation_name)
+        # after run_id is generated in __init__. For now, store the base logger.
+        self._base_logger = base_logger
 
     def _create_engine(self):
         """Create engine based on configuration using discovery mechanism.
@@ -358,7 +389,7 @@ class SimulationOrchestrator:
             )
             self.event_writer.emit(start_event)
 
-            logger.info(
+            self.logger.info(
                 "simulation_starting",
                 name=self.config.simulation.name,
                 max_turns=self.config.simulation.max_turns,
@@ -398,7 +429,7 @@ class SimulationOrchestrator:
                 if self.checkpoint_manager.should_save_checkpoint(state.turn, is_final):
                     checkpoint_type = "final" if is_final else "interval"
                     self.checkpoint_manager.save_checkpoint(state, checkpoint_type)
-                    logger.info(
+                    self.logger.info(
                         "checkpoint_saved",
                         turn=state.turn,
                         type=checkpoint_type,
@@ -411,7 +442,7 @@ class SimulationOrchestrator:
                 log_data = {"turn": state.turn}
                 if hasattr(state.global_state, "total_economic_value"):
                     log_data["total_value"] = state.global_state.total_economic_value
-                logger.info("turn_completed", **log_data)
+                self.logger.info("turn_completed", **log_data)
 
                 # Yield control to event loop so writer task can process events
                 await asyncio.sleep(0.01)
@@ -461,13 +492,13 @@ class SimulationOrchestrator:
         }
         if hasattr(state.global_state, "total_economic_value"):
             log_data["final_value"] = state.global_state.total_economic_value
-        logger.info("simulation_completed", **log_data)
+        self.logger.info("simulation_completed", **log_data)
 
         return {"final_state": state, "history": self.history, "stats": stats, "run_id": self.run_id}
 
     async def _run_async(self) -> Dict[str, Any]:
         """Run simulation asynchronously (for LLM components)."""
-        logger.info(
+        self.logger.info(
             "simulation_starting",
             name=self.config.simulation.name,
             max_turns=self.config.simulation.max_turns,
@@ -489,7 +520,7 @@ class SimulationOrchestrator:
             if self.checkpoint_manager.should_save_checkpoint(state.turn, is_final):
                 checkpoint_type = "final" if is_final else "interval"
                 self.checkpoint_manager.save_checkpoint(state, checkpoint_type)
-                logger.info(
+                self.logger.info(
                     "checkpoint_saved",
                     turn=state.turn,
                     type=checkpoint_type,
@@ -502,7 +533,7 @@ class SimulationOrchestrator:
             log_data = {"turn": state.turn}
             if hasattr(state.global_state, "total_economic_value"):
                 log_data["total_value"] = state.global_state.total_economic_value
-            logger.info("turn_completed", **log_data)
+            self.logger.info("turn_completed", **log_data)
 
         # Update run metadata end time
         self.run_metadata = RunMetadata(
@@ -532,7 +563,7 @@ class SimulationOrchestrator:
         }
         if hasattr(state.global_state, "total_economic_value"):
             log_data["final_value"] = state.global_state.total_economic_value
-        logger.info("simulation_completed", **log_data)
+        self.logger.info("simulation_completed", **log_data)
 
         return {"final_state": state, "history": self.history, "stats": stats, "run_id": self.run_id}
 
@@ -559,7 +590,7 @@ class SimulationOrchestrator:
             # Construct observation for this agent based on observability config
             if self.config.observability and self.config.observability.enabled:
                 observation = construct_observation(agent_name, state, self.config.observability)
-                logger.debug(
+                self.logger.debug(
                     "constructing_observation",
                     observer=agent_name,
                     turn=state.turn,
@@ -602,7 +633,7 @@ class SimulationOrchestrator:
             # Construct observation for this agent based on observability config
             if self.config.observability and self.config.observability.enabled:
                 observation = construct_observation(agent_name, state, self.config.observability)
-                logger.debug(
+                self.logger.debug(
                     "constructing_observation",
                     observer=agent_name,
                     turn=state.turn,

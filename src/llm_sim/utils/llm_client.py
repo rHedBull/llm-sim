@@ -19,7 +19,7 @@ try:
 except ImportError:
     ollama = None
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
