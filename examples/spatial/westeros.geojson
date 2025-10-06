@@ -1,0 +1,166 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "the_north",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [0.0, 5.0],
+          [0.0, 10.0],
+          [5.0, 10.0],
+          [5.0, 5.0],
+          [0.0, 5.0]
+        ]]
+      },
+      "properties": {
+        "name": "The North",
+        "capital": "Winterfell",
+        "loyalty": "stark",
+        "population": 2000000,
+        "resources": 3000,
+        "military_strength": 5000,
+        "terrain": "forest"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "riverlands",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [0.0, 2.5],
+          [0.0, 5.0],
+          [5.0, 5.0],
+          [5.0, 2.5],
+          [0.0, 2.5]
+        ]]
+      },
+      "properties": {
+        "name": "The Riverlands",
+        "capital": "Riverrun",
+        "loyalty": "tully",
+        "population": 1500000,
+        "resources": 4000,
+        "military_strength": 3000,
+        "terrain": "plains"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "westerlands",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [5.0, 2.5],
+          [5.0, 5.0],
+          [10.0, 5.0],
+          [10.0, 2.5],
+          [5.0, 2.5]
+        ]]
+      },
+      "properties": {
+        "name": "The Westerlands",
+        "capital": "Casterly Rock",
+        "loyalty": "lannister",
+        "population": 1800000,
+        "resources": 8000,
+        "military_strength": 7000,
+        "terrain": "hills"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "crownlands",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [0.0, 0.0],
+          [0.0, 2.5],
+          [5.0, 2.5],
+          [5.0, 0.0],
+          [0.0, 0.0]
+        ]]
+      },
+      "properties": {
+        "name": "The Crownlands",
+        "capital": "Kings Landing",
+        "loyalty": "baratheon",
+        "population": 2500000,
+        "resources": 5000,
+        "military_strength": 6000,
+        "terrain": "coastal"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "stormlands",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [5.0, 0.0],
+          [5.0, 2.5],
+          [10.0, 2.5],
+          [10.0, 0.0],
+          [5.0, 0.0]
+        ]]
+      },
+      "properties": {
+        "name": "The Stormlands",
+        "capital": "Storms End",
+        "loyalty": "baratheon",
+        "population": 1200000,
+        "resources": 2500,
+        "military_strength": 4000,
+        "terrain": "mountains"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "vale",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [5.0, 5.0],
+          [5.0, 10.0],
+          [10.0, 10.0],
+          [10.0, 5.0],
+          [5.0, 5.0]
+        ]]
+      },
+      "properties": {
+        "name": "The Vale",
+        "capital": "The Eyrie",
+        "loyalty": "arryn",
+        "population": 1000000,
+        "resources": 2000,
+        "military_strength": 3500,
+        "terrain": "mountains"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "reach",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-5.0, 0.0],
+          [-5.0, 5.0],
+          [0.0, 5.0],
+          [0.0, 0.0],
+          [-5.0, 0.0]
+        ]]
+      },
+      "properties": {
+        "name": "The Reach",
+        "capital": "Highgarden",
+        "loyalty": "tyrell",
+        "population": 3000000,
+        "resources": 6000,
+        "military_strength": 8000,
+        "terrain": "fertile_plains"
+      }
+    }
+  ]
+}

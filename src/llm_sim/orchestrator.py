@@ -19,6 +19,9 @@ from llm_sim.utils.logging import configure_logging, get_logger
 from llm_sim.infrastructure.lifecycle.manager import LifecycleManager
 from llm_sim.infrastructure.base.agent import BaseAgent
 from llm_sim.infrastructure.events import EventWriter, VerbosityLevel, create_milestone_event
+from llm_sim.infrastructure.spatial.factory import SpatialStateFactory
+from llm_sim.infrastructure.spatial.mutations import SpatialMutations
+from llm_sim.infrastructure.spatial.query import SpatialQuery
 
 logger = get_logger(__name__)
 
@@ -345,7 +348,62 @@ class SimulationOrchestrator:
         Note: This is a convenience method for testing. The run() method
         initializes state automatically.
         """
-        return self.engine.initialize_state()
+        return self._create_initial_state()
+
+    def _create_initial_state(self) -> SimulationState:
+        """Create initial state with spatial positioning if configured.
+
+        Returns:
+            Initial simulation state with spatial_state and agent positions
+        """
+        # Get initial state from engine
+        state = self.engine.initialize_state()
+
+        # Check if spatial configuration is present
+        if not hasattr(self.config, 'spatial') or self.config.spatial is None:
+            return state
+
+        # Create spatial state from configuration
+        try:
+            spatial_state = SpatialStateFactory.create(self.config.spatial)
+            self.logger.info(
+                "spatial_state_initialized",
+                topology_type=spatial_state.topology_type,
+                num_locations=len(spatial_state.locations),
+                num_networks=len(spatial_state.networks)
+            )
+        except Exception as e:
+            self.logger.error(
+                "spatial_state_creation_failed",
+                error=str(e),
+                msg="Failed to create spatial state from config. Continuing without spatial state."
+            )
+            return state
+
+        # Place agents at initial_location if specified
+        for agent_config in self.config.agents:
+            if hasattr(agent_config, 'initial_location') and agent_config.initial_location is not None:
+                try:
+                    spatial_state = SpatialMutations.move_agent(
+                        spatial_state,
+                        agent_config.name,
+                        agent_config.initial_location
+                    )
+                    self.logger.debug(
+                        "agent_positioned",
+                        agent=agent_config.name,
+                        location=agent_config.initial_location
+                    )
+                except ValueError as e:
+                    self.logger.warning(
+                        "agent_positioning_failed",
+                        agent=agent_config.name,
+                        location=agent_config.initial_location,
+                        error=str(e)
+                    )
+
+        # Return state with spatial_state attached
+        return state.model_copy(update={"spatial_state": spatial_state})
 
     def run(self) -> Dict[str, Any]:
         """Run the simulation.
@@ -397,8 +455,8 @@ class SimulationOrchestrator:
                 run_id=self.run_id,
             )
 
-            # Initialize state
-            state = self.engine.initialize_state()
+            # Initialize state (includes spatial setup if configured)
+            state = self._create_initial_state()
             self.history.append(state)
 
             # Run simulation turns
@@ -506,8 +564,8 @@ class SimulationOrchestrator:
             run_id=self.run_id,
         )
 
-        # Initialize state
-        state = self.engine.initialize_state()
+        # Initialize state (includes spatial setup if configured)
+        state = self._create_initial_state()
         self.history.append(state)
 
         # Run simulation turns
@@ -587,17 +645,35 @@ class SimulationOrchestrator:
         actions: List[Action] = []
         for agent in self.agents:
             agent_name = agent.name
-            # Construct observation for this agent based on observability config
+
+            # Start with full state
+            observation = state
+
+            # Apply spatial proximity filtering if spatial state is present
+            if state.spatial_state is not None:
+                # Get proximity radius from config (default: 2 hops)
+                proximity_radius = getattr(self.config.spatial, 'proximity_radius', 2) if hasattr(self.config, 'spatial') and self.config.spatial else 2
+                observation = SpatialQuery.filter_state_by_proximity(
+                    agent_name,
+                    observation,
+                    radius=proximity_radius
+                )
+                self.logger.debug(
+                    "spatial_filtering_applied",
+                    observer=agent_name,
+                    turn=state.turn,
+                    radius=proximity_radius
+                )
+
+            # Apply observability filtering if configured
             if self.config.observability and self.config.observability.enabled:
-                observation = construct_observation(agent_name, state, self.config.observability)
+                observation = construct_observation(agent_name, observation, self.config.observability)
                 self.logger.debug(
                     "constructing_observation",
                     observer=agent_name,
                     turn=state.turn,
                     visible_agents=list(observation.agents.keys())
                 )
-            else:
-                observation = state  # Full observability (backward compatible)
 
             action = await agent.decide_action(observation)
             actions.append(action)
@@ -630,17 +706,35 @@ class SimulationOrchestrator:
         actions: List[Action] = []
         for agent in self.agents:
             agent_name = agent.name
-            # Construct observation for this agent based on observability config
+
+            # Start with full state
+            observation = state
+
+            # Apply spatial proximity filtering if spatial state is present
+            if state.spatial_state is not None:
+                # Get proximity radius from config (default: 2 hops)
+                proximity_radius = getattr(self.config.spatial, 'proximity_radius', 2) if hasattr(self.config, 'spatial') and self.config.spatial else 2
+                observation = SpatialQuery.filter_state_by_proximity(
+                    agent_name,
+                    observation,
+                    radius=proximity_radius
+                )
+                self.logger.debug(
+                    "spatial_filtering_applied",
+                    observer=agent_name,
+                    turn=state.turn,
+                    radius=proximity_radius
+                )
+
+            # Apply observability filtering if configured
             if self.config.observability and self.config.observability.enabled:
-                observation = construct_observation(agent_name, state, self.config.observability)
+                observation = construct_observation(agent_name, observation, self.config.observability)
                 self.logger.debug(
                     "constructing_observation",
                     observer=agent_name,
                     turn=state.turn,
                     visible_agents=list(observation.agents.keys())
                 )
-            else:
-                observation = state  # Full observability (backward compatible)
 
             action = agent.decide_action(observation)
             actions.append(action)

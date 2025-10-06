@@ -1,0 +1,278 @@
+{
+  "nodes": [
+    {
+      "id": "factory_A",
+      "type": "factory",
+      "attributes": {
+        "name": "Factory Alpha",
+        "production_capacity": 1000,
+        "inventory": 500,
+        "location_type": "manufacturing"
+      }
+    },
+    {
+      "id": "factory_B",
+      "type": "factory",
+      "attributes": {
+        "name": "Factory Beta",
+        "production_capacity": 800,
+        "inventory": 300,
+        "location_type": "manufacturing"
+      }
+    },
+    {
+      "id": "warehouse_1",
+      "type": "warehouse",
+      "attributes": {
+        "name": "Central Warehouse",
+        "storage_capacity": 5000,
+        "inventory": 2000,
+        "location_type": "storage"
+      }
+    },
+    {
+      "id": "warehouse_2",
+      "type": "warehouse",
+      "attributes": {
+        "name": "Regional Warehouse",
+        "storage_capacity": 3000,
+        "inventory": 1500,
+        "location_type": "storage"
+      }
+    },
+    {
+      "id": "distribution_1",
+      "type": "distribution_center",
+      "attributes": {
+        "name": "East Distribution",
+        "throughput": 500,
+        "location_type": "distribution"
+      }
+    },
+    {
+      "id": "distribution_2",
+      "type": "distribution_center",
+      "attributes": {
+        "name": "West Distribution",
+        "throughput": 600,
+        "location_type": "distribution"
+      }
+    },
+    {
+      "id": "retail_1",
+      "type": "retail",
+      "attributes": {
+        "name": "Store North",
+        "daily_demand": 100,
+        "inventory": 200,
+        "location_type": "retail"
+      }
+    },
+    {
+      "id": "retail_2",
+      "type": "retail",
+      "attributes": {
+        "name": "Store South",
+        "daily_demand": 120,
+        "inventory": 180,
+        "location_type": "retail"
+      }
+    },
+    {
+      "id": "retail_3",
+      "type": "retail",
+      "attributes": {
+        "name": "Store East",
+        "daily_demand": 90,
+        "inventory": 150,
+        "location_type": "retail"
+      }
+    },
+    {
+      "id": "retail_4",
+      "type": "retail",
+      "attributes": {
+        "name": "Store West",
+        "daily_demand": 110,
+        "inventory": 220,
+        "location_type": "retail"
+      }
+    },
+    {
+      "id": "supplier_1",
+      "type": "supplier",
+      "attributes": {
+        "name": "Raw Materials Co",
+        "supply_capacity": 1500,
+        "reliability": 0.95,
+        "location_type": "supplier"
+      }
+    },
+    {
+      "id": "supplier_2",
+      "type": "supplier",
+      "attributes": {
+        "name": "Components Inc",
+        "supply_capacity": 1200,
+        "reliability": 0.90,
+        "location_type": "supplier"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "supplier_1",
+      "target": "factory_A",
+      "network": "road",
+      "attributes": {
+        "distance_km": 50,
+        "travel_time_hours": 2,
+        "cost_per_unit": 0.5,
+        "capacity": 500
+      }
+    },
+    {
+      "source": "supplier_2",
+      "target": "factory_B",
+      "network": "road",
+      "attributes": {
+        "distance_km": 45,
+        "travel_time_hours": 1.8,
+        "cost_per_unit": 0.4,
+        "capacity": 400
+      }
+    },
+    {
+      "source": "factory_A",
+      "target": "warehouse_1",
+      "network": "rail",
+      "attributes": {
+        "distance_km": 200,
+        "travel_time_hours": 6,
+        "cost_per_unit": 0.2,
+        "capacity": 1000
+      }
+    },
+    {
+      "source": "factory_B",
+      "target": "warehouse_2",
+      "network": "rail",
+      "attributes": {
+        "distance_km": 180,
+        "travel_time_hours": 5.5,
+        "cost_per_unit": 0.18,
+        "capacity": 800
+      }
+    },
+    {
+      "source": "warehouse_1",
+      "target": "distribution_1",
+      "network": "road",
+      "attributes": {
+        "distance_km": 80,
+        "travel_time_hours": 3,
+        "cost_per_unit": 0.3,
+        "capacity": 600
+      }
+    },
+    {
+      "source": "warehouse_1",
+      "target": "distribution_2",
+      "network": "road",
+      "attributes": {
+        "distance_km": 90,
+        "travel_time_hours": 3.5,
+        "cost_per_unit": 0.35,
+        "capacity": 600
+      }
+    },
+    {
+      "source": "warehouse_2",
+      "target": "distribution_2",
+      "network": "road",
+      "attributes": {
+        "distance_km": 60,
+        "travel_time_hours": 2.5,
+        "cost_per_unit": 0.25,
+        "capacity": 500
+      }
+    },
+    {
+      "source": "distribution_1",
+      "target": "retail_1",
+      "network": "road",
+      "attributes": {
+        "distance_km": 25,
+        "travel_time_hours": 1,
+        "cost_per_unit": 0.4,
+        "capacity": 200
+      }
+    },
+    {
+      "source": "distribution_1",
+      "target": "retail_3",
+      "network": "road",
+      "attributes": {
+        "distance_km": 30,
+        "travel_time_hours": 1.2,
+        "cost_per_unit": 0.45,
+        "capacity": 200
+      }
+    },
+    {
+      "source": "distribution_2",
+      "target": "retail_2",
+      "network": "road",
+      "attributes": {
+        "distance_km": 28,
+        "travel_time_hours": 1.1,
+        "cost_per_unit": 0.42,
+        "capacity": 200
+      }
+    },
+    {
+      "source": "distribution_2",
+      "target": "retail_4",
+      "network": "road",
+      "attributes": {
+        "distance_km": 32,
+        "travel_time_hours": 1.3,
+        "cost_per_unit": 0.48,
+        "capacity": 200
+      }
+    },
+    {
+      "source": "factory_A",
+      "target": "distribution_1",
+      "network": "air",
+      "attributes": {
+        "distance_km": 250,
+        "travel_time_hours": 1.5,
+        "cost_per_unit": 2.5,
+        "capacity": 100
+      }
+    },
+    {
+      "source": "factory_B",
+      "target": "distribution_2",
+      "network": "air",
+      "attributes": {
+        "distance_km": 230,
+        "travel_time_hours": 1.4,
+        "cost_per_unit": 2.3,
+        "capacity": 100
+      }
+    },
+    {
+      "source": "warehouse_1",
+      "target": "warehouse_2",
+      "network": "rail",
+      "attributes": {
+        "distance_km": 120,
+        "travel_time_hours": 4,
+        "cost_per_unit": 0.15,
+        "capacity": 800
+      }
+    }
+  ]
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 import structlog
 import yaml
 
@@ -58,12 +58,76 @@ class EngineConfig(BaseModel):
         return v
 
 
+class GridConfig(BaseModel):
+    """Configuration for 2D grid topology."""
+    type: Literal["grid"] = "grid"
+    width: int = Field(..., gt=0, description="Grid width")
+    height: int = Field(..., gt=0, description="Grid height")
+    connectivity: Literal[4, 8] = Field(default=4, description="Neighbor connectivity")
+    wrapping: bool = Field(default=False, description="Whether grid wraps (toroidal)")
+
+
+class HexGridConfig(BaseModel):
+    """Configuration for hexagonal grid topology."""
+    type: Literal["hex_grid"] = "hex_grid"
+    radius: int = Field(..., ge=0, description="Hex grid radius")
+    coord_system: Literal["axial"] = Field(default="axial", description="Coordinate system")
+
+
+class NetworkConfig(BaseModel):
+    """Configuration for network/graph topology."""
+    type: Literal["network"] = "network"
+    edges_file: str = Field(..., description="Path to JSON edge list file")
+
+    @field_validator('edges_file')
+    @classmethod
+    def validate_file_exists(cls, v: str) -> str:
+        from pathlib import Path
+        if not Path(v).exists():
+            raise ValueError(f"Edges file not found: {v}")
+        return v
+
+
+class GeoJSONConfig(BaseModel):
+    """Configuration for GeoJSON topology."""
+    type: Literal["geojson"] = "geojson"
+    geojson_file: str = Field(..., description="Path to GeoJSON file")
+
+    @field_validator('geojson_file')
+    @classmethod
+    def validate_file_exists(cls, v: str) -> str:
+        from pathlib import Path
+        if not Path(v).exists():
+            raise ValueError(f"GeoJSON file not found: {v}")
+        return v
+
+
+SpatialConfigTypes = Union[GridConfig, HexGridConfig, NetworkConfig, GeoJSONConfig]
+
+
+class SpatialConfig(BaseModel):
+    """Top-level spatial configuration."""
+    topology: SpatialConfigTypes = Field(..., discriminator='type')
+    location_attributes: Optional[Dict[str, Dict[str, Any]]] = Field(
+        default=None,
+        description="Initial attributes per location"
+    )
+    additional_networks: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Additional network layers beyond base topology"
+    )
+
+
 class AgentConfig(BaseModel):
     """Agent configuration."""
 
     name: str
     type: str
     initial_economic_strength: Optional[float] = None  # Optional for dynamic variable systems
+    initial_location: Optional[str] = Field(
+        default=None,
+        description="Initial location ID for spatial simulations"
+    )
 
 
 class ValidatorConfig(BaseModel):
@@ -170,6 +234,10 @@ class SimulationConfig(BaseModel):
     llm: Optional[LLMConfig] = None  # Optional for backward compatibility
     state_variables: Optional[StateVariablesConfig] = None  # Optional for backward compatibility
     observability: Optional[Any] = None  # Optional for backward compatibility - parsed in validator
+    spatial: Optional[SpatialConfig] = Field(
+        default=None,
+        description="Optional spatial topology configuration"
+    )
 
     @field_validator("observability", mode="before")
     @classmethod

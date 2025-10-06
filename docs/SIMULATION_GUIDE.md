@@ -9,14 +9,15 @@
 1. [Overview](#overview)
 2. [Configuration Structure](#configuration-structure)
 3. [State Variables](#state-variables)
-4. [Partial Observability](#partial-observability)
-5. [Dynamic Agent Management](#dynamic-agent-management)
-6. [Agent Configuration](#agent-configuration)
-7. [Engine Configuration](#engine-configuration)
-8. [Validator Configuration](#validator-configuration)
-9. [LLM Integration](#llm-integration)
-10. [Checkpointing](#checkpointing)
-11. [Complete Examples](#complete-examples)
+4. [Spatial Positioning](#spatial-positioning)
+5. [Partial Observability](#partial-observability)
+6. [Dynamic Agent Management](#dynamic-agent-management)
+7. [Agent Configuration](#agent-configuration)
+8. [Engine Configuration](#engine-configuration)
+9. [Validator Configuration](#validator-configuration)
+10. [LLM Integration](#llm-integration)
+11. [Checkpointing](#checkpointing)
+12. [Complete Examples](#complete-examples)
 
 ---
 
@@ -29,6 +30,7 @@ Simulations in llm-sim are configured using YAML files that define:
 - **Engine** - How the world evolves
 - **Validator** - What actions are valid
 - **Observability** - What information agents can see
+- **Spatial positioning** - Where agents are located (optional)
 - **LLM settings** - How agents reason
 - **Simulation parameters** - Runtime configuration
 
@@ -53,12 +55,19 @@ state_variables:
 agents:
   - name: Agent1
     type: my_agent
+    initial_location: "0,0"  # Optional: spatial positioning
 
 engine:
   type: my_engine
 
 validator:
   type: my_validator
+
+spatial:  # Optional: spatial topology
+  topology:
+    type: grid
+    width: 10
+    height: 10
 
 observability:
   enabled: true
@@ -157,6 +166,439 @@ economic_strength:
   max: 1000       # Maximum value (inclusive)
   default: 100.0  # Initial value
 ```
+
+---
+
+## Spatial Positioning
+
+Add spatial topology to your simulation, enabling agents to exist at locations, move through space, and interact based on proximity.
+
+### Overview
+
+Spatial positioning enables:
+- **Location-based agents** - Agents positioned at specific locations
+- **Spatial topologies** - Grid, hex, network, or geographic regions
+- **Movement constraints** - Validate actions based on adjacency
+- **Proximity awareness** - Filter observations by distance
+- **Multi-layer networks** - Multiple connectivity patterns (roads, trade routes, etc.)
+
+### Basic Setup
+
+```yaml
+spatial:
+  topology:
+    type: grid        # or hex_grid, network, geojson
+    width: 10
+    height: 10
+    connectivity: 4   # 4-way or 8-way
+    wrapping: false   # toroidal grid
+
+agents:
+  - name: Agent1
+    type: my_agent
+    initial_location: "5,5"  # Place agent at grid cell (5,5)
+```
+
+### Topology Types
+
+#### Grid Topology
+
+Regular 2D rectangular grid:
+
+```yaml
+spatial:
+  topology:
+    type: grid
+    width: 10         # Grid width
+    height: 10        # Grid height
+    connectivity: 4   # 4 or 8 (diagonal neighbors)
+    wrapping: false   # true for toroidal (edges wrap)
+```
+
+**Location IDs**: `"x,y"` format (e.g., `"0,0"`, `"5,3"`)
+
+**Use cases**: City grids, cellular automata, epidemic spread
+
+#### Hexagonal Grid Topology
+
+Hexagonal grid with 6-neighbor connectivity:
+
+```yaml
+spatial:
+  topology:
+    type: hex_grid
+    radius: 5         # Hexagonal radius from center
+    coord_system: axial
+```
+
+**Location IDs**: `"q,r"` format in axial coordinates (e.g., `"0,0"`, `"-1,2"`)
+
+**Use cases**: Board games, territorial maps, resource distribution
+
+#### Network Topology
+
+Arbitrary graph from JSON file:
+
+```yaml
+spatial:
+  topology:
+    type: network
+    edges_file: "path/to/network.json"
+```
+
+**JSON Format**:
+```json
+{
+  "nodes": ["nodeA", "nodeB", "nodeC"],
+  "edges": [
+    ["nodeA", "nodeB"],
+    ["nodeB", "nodeC"]
+  ],
+  "attributes": {
+    "nodeA": {"capacity": 100}
+  }
+}
+```
+
+**Location IDs**: Node names from JSON
+
+**Use cases**: Supply chains, social networks, transportation networks
+
+#### GeoJSON Topology
+
+Geographic regions from GeoJSON polygons:
+
+```yaml
+spatial:
+  topology:
+    type: geojson
+    geojson_file: "path/to/regions.geojson"
+```
+
+**GeoJSON Format**:
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Region1",
+        "population": 100000,
+        "resources": 500
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[0,0], [1,0], [1,1], [0,1], [0,0]]]
+      }
+    }
+  ]
+}
+```
+
+**Location IDs**: Region names from `properties.name`
+
+**Use cases**: Geopolitics, regional economics, territorial control
+
+### Location Attributes
+
+Add attributes to specific locations:
+
+```yaml
+spatial:
+  topology:
+    type: grid
+    width: 10
+    height: 10
+
+  location_attributes:
+    "5,5":
+      terrain: "mountain"
+      resources: 100
+      danger_level: 0.8
+    "3,7":
+      terrain: "water"
+      passable: false
+```
+
+**Access in code**:
+```python
+from llm_sim.infrastructure.spatial.query import SpatialQuery
+
+terrain = SpatialQuery.get_location_attribute(state.spatial_state, "5,5", "terrain")
+# Returns: "mountain"
+```
+
+### Multi-Layer Networks
+
+Add overlay networks beyond base topology:
+
+```yaml
+spatial:
+  topology:
+    type: grid
+    width: 10
+    height: 10
+
+  additional_networks:
+    - name: "trade_routes"
+      edges_file: "data/trade.json"
+    - name: "alliances"
+      edges_file: "data/alliances.json"
+```
+
+**Use cases**:
+- Transportation modes (road, rail, air)
+- Social connections (friends, allies, enemies)
+- Communication networks
+- Trade relationships
+
+### Agent Positioning
+
+Place agents at initial locations:
+
+```yaml
+agents:
+  - name: Agent1
+    type: my_agent
+    initial_location: "5,5"
+
+  - name: Agent2
+    type: my_agent
+    initial_location: "winterfell"  # For GeoJSON/network topologies
+
+  - name: Agent3
+    type: my_agent
+    # No initial_location = agent not spatially positioned
+```
+
+**Moving agents** (in engines):
+```python
+from llm_sim.infrastructure.spatial.mutations import SpatialMutations
+
+new_spatial_state = SpatialMutations.move_agent(
+    state.spatial_state,
+    agent_name="Agent1",
+    new_location="6,5"
+)
+```
+
+### Proximity-Based Observations
+
+Automatically filter observations by proximity:
+
+```yaml
+spatial:
+  topology:
+    type: grid
+    width: 20
+    height: 20
+  proximity_radius: 3  # Agents only see within 3 hops
+```
+
+Agents automatically receive filtered observations containing only:
+- Agents within `proximity_radius` hops
+- Locations within `proximity_radius` hops
+- Global state (unchanged)
+
+**Composability**: Works with partial observability:
+1. Spatial filtering applies first (proximity)
+2. Observability filtering applies second (visibility rules)
+
+### Spatial Queries
+
+Query spatial relationships in agent/engine/validator code:
+
+```python
+from llm_sim.infrastructure.spatial.query import SpatialQuery
+
+# Get agent position
+location = SpatialQuery.get_agent_position(state.spatial_state, "Agent1")
+
+# Get neighboring locations
+neighbors = SpatialQuery.get_neighbors(state.spatial_state, "5,5")
+
+# Check adjacency
+adjacent = SpatialQuery.is_adjacent(state.spatial_state, "5,5", "5,6")
+
+# Find shortest path
+path = SpatialQuery.shortest_path(state.spatial_state, "5,5", "8,8")
+
+# Get agents at location
+agents_here = SpatialQuery.get_agents_at(state.spatial_state, "5,5")
+
+# Get nearby agents
+nearby = SpatialQuery.get_agents_within(state.spatial_state, "5,5", radius=2)
+
+# Get location attributes
+terrain = SpatialQuery.get_location_attribute(state.spatial_state, "5,5", "terrain")
+```
+
+### Spatial Mutations
+
+Modify spatial state (engines only):
+
+```python
+from llm_sim.infrastructure.spatial.mutations import SpatialMutations
+
+# Move single agent
+new_state = SpatialMutations.move_agent(spatial_state, "Agent1", "6,5")
+
+# Move multiple agents
+moves = {"Agent1": "6,5", "Agent2": "7,3"}
+new_state = SpatialMutations.move_agents_batch(spatial_state, moves)
+
+# Update location attributes
+new_state = SpatialMutations.set_location_attribute(
+    spatial_state, "5,5", "resources", 150
+)
+
+# Add network connection
+new_state = SpatialMutations.add_connection(
+    spatial_state,
+    loc1="cityA",
+    loc2="cityB",
+    network="trade_routes",
+    attributes={"cost": 100, "time": 5}
+)
+```
+
+**All mutations are immutable** - return new spatial state, never mutate input.
+
+### Movement Validation
+
+Validate spatial actions in validators:
+
+```python
+from llm_sim.infrastructure.base import BaseValidator
+from llm_sim.infrastructure.spatial.query import SpatialQuery
+
+class SpatialMovementValidator(BaseValidator):
+    def validate_action(self, action, state):
+        if action.action_name == "move":
+            current_loc = SpatialQuery.get_agent_position(
+                state.spatial_state,
+                action.agent_name
+            )
+            target_loc = action.parameters["target"]
+
+            # Check adjacency
+            if not SpatialQuery.is_adjacent(
+                state.spatial_state,
+                current_loc,
+                target_loc
+            ):
+                return ValidationResult(
+                    valid=False,
+                    reason=f"Location {target_loc} not adjacent to {current_loc}"
+                )
+
+        return ValidationResult(valid=True)
+```
+
+### Complete Spatial Example
+
+```yaml
+simulation:
+  name: "Grid Epidemic"
+  max_turns: 50
+
+spatial:
+  topology:
+    type: grid
+    width: 10
+    height: 10
+    connectivity: 4
+    wrapping: false
+
+  location_attributes:
+    "5,5":
+      infection_source: true
+
+agents:
+  - name: person_0
+    type: random_walker
+    initial_location: "5,5"  # Initial infected
+
+  - name: person_1
+    type: random_walker
+    initial_location: "4,5"
+
+  - name: person_2
+    type: random_walker
+    initial_location: "6,5"
+
+engine:
+  type: epidemic_engine
+
+validator:
+  type: spatial_movement_validator
+
+state_variables:
+  agent_vars:
+    infected:
+      type: bool
+      default: false
+
+  global_vars:
+    total_infected:
+      type: int
+      default: 1
+```
+
+### Backward Compatibility
+
+Spatial features are completely optional:
+
+```yaml
+# Simulations without spatial config work unchanged
+agents:
+  - name: Agent1
+    type: my_agent
+    # No initial_location needed
+
+# No spatial config section required
+```
+
+When `spatial` is omitted:
+- `state.spatial_state` is `None`
+- Spatial queries return safe defaults
+- Proximity filtering is skipped
+- All existing functionality works unchanged
+
+### Use Cases
+
+**Grid-Based**:
+- Epidemic simulations (disease spread through grid cells)
+- Cellular automata (Conway's Life, forest fires)
+- Urban planning (city development on grid)
+- Tactical games (turn-based combat)
+
+**Network-Based**:
+- Supply chain optimization
+- Social network dynamics
+- Transportation routing
+- Communication networks
+
+**Geographic**:
+- Geopolitical simulations
+- Resource competition
+- Territorial control
+- Trade route optimization
+
+### Performance Considerations
+
+- Spatial queries are highly optimized (most < 1ms)
+- Shortest path uses NetworkX (< 10ms for 1000 locations)
+- Proximity filtering is O(agents + locations)
+- Immutable updates use Pydantic model_copy (efficient)
+
+### Example Files
+
+See `examples/spatial/` for complete working examples:
+- `epidemic_grid_config.yaml` - Grid epidemic simulation
+- `geopolitics_config.yaml` - GeoJSON geopolitical game
+- `supply_chain_config.yaml` - Network supply chain
 
 ---
 

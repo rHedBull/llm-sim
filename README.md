@@ -13,6 +13,7 @@
 - **Base classes** for agents, engines, and validators
 - **LLM integration patterns** for reasoning agents
 - **State management** with dynamic variables
+- **Spatial positioning** with multiple topology types (grid, hex, network, GeoJSON)
 - **Partial observability** for realistic information asymmetry
 - **Checkpoint system** with schema validation
 - **Dynamic agent management** with lifecycle controls

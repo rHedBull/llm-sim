@@ -1,0 +1,135 @@
+# GeoJSON-Based Geopolitical Simulation
+# Feature: 012-spatial-maps (Task T043)
+#
+# Scenario: Multi-faction geopolitics in Westeros
+# - Regional topology from GeoJSON with polygon adjacency
+# - Houses compete for control of regions
+# - Location attributes: loyalty, resources, military
+# - Multiple network layers (borders, trade routes, alliances)
+# - Demonstrates GeoJSON topology with complex state
+
+simulation:
+  name: "Westeros Geopolitics"
+  max_turns: 50
+  checkpoint_interval: 10
+
+# Spatial topology: Geographic regions from GeoJSON
+spatial:
+  topology:
+    type: "geojson"
+    geojson_file: "examples/spatial/westeros.geojson"
+
+  # Additional location attributes beyond GeoJSON properties
+  location_attributes:
+    "the_north":
+      fortified: true
+      winter_prepared: true
+    "westerlands":
+      gold_mines: 5
+      wealth_level: "very_high"
+    "crownlands":
+      political_center: true
+      iron_throne: true
+
+  # Additional network layers beyond basic adjacency
+  additional_networks:
+    - name: "trade_routes"
+      edges:
+        - ["the_north", "riverlands"]
+        - ["riverlands", "westerlands"]
+        - ["riverlands", "crownlands"]
+        - ["crownlands", "reach"]
+        - ["westerlands", "reach"]
+      attributes:
+        type: "economic"
+        trade_volume: 1000
+
+    - name: "alliances"
+      edges:
+        - ["the_north", "vale"]
+        - ["crownlands", "stormlands"]
+      attributes:
+        type: "political"
+        treaty_strength: 0.8
+
+engine:
+  type: "geopolitical_engine"
+
+# Agents represent ruling houses of regions
+agents:
+  - name: "house_stark"
+    type: "llm_agent"
+    initial_location: "the_north"
+
+  - name: "house_lannister"
+    type: "llm_agent"
+    initial_location: "westerlands"
+
+  - name: "house_baratheon"
+    type: "llm_agent"
+    initial_location: "crownlands"
+
+  - name: "house_tyrell"
+    type: "llm_agent"
+    initial_location: "reach"
+
+  - name: "house_tully"
+    type: "llm_agent"
+    initial_location: "riverlands"
+
+  - name: "house_arryn"
+    type: "llm_agent"
+    initial_location: "vale"
+
+  - name: "house_baratheon_storm"
+    type: "llm_agent"
+    initial_location: "stormlands"
+
+# Validator ensures valid geopolitical actions
+validator:
+  type: "geopolitical_validator"
+  domain: "geopolitics"
+
+# State variables for geopolitical simulation
+state_variables:
+  agent_vars:
+    treasury:
+      type: int
+      default: 5000
+      min: 0
+    army_size:
+      type: int
+      default: 5000
+      min: 0
+    influence:
+      type: float
+      default: 50.0
+      min: 0.0
+      max: 100.0
+    war_status:
+      type: categorical
+      values: ["peace", "preparing", "at_war"]
+      default: "peace"
+
+  global_vars:
+    total_conflicts:
+      type: int
+      default: 0
+      min: 0
+    iron_throne_holder:
+      type: categorical
+      values: ["house_stark", "house_lannister", "house_baratheon", "house_tyrell",
+               "house_tully", "house_arryn", "house_baratheon_storm", "none"]
+      default: "house_baratheon"
+    winter_severity:
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 1.0
+
+# LLM configuration for agent reasoning
+llm:
+  model: "gemma:3"
+  host: "http://localhost:11434"
+  timeout: 60.0
+  temperature: 0.8
