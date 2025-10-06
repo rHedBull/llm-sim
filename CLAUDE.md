@@ -1,6 +1,6 @@
 # llm_sim Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-09-30
+Auto-generated from all feature plans. Last updated: 2025-10-06
 
 ## Active Technologies
 - Python 3.12 + Pydantic 2.x, PyYAML 6.x, structlog 24.x, ollama Python client (new), httpx (for async LLM calls) (004-new-feature-i)
@@ -15,6 +15,8 @@ Auto-generated from all feature plans. Last updated: 2025-09-30
 - File system (JSONL files in output/{run_id}/events*.jsonl) (010-event-stream-the)
 - Python 3.12 + structlog 24.x (existing), Python stdlib contextvars (011-logging-improvements-enhanced)
 - N/A (logging only - outputs to stdout/files) (011-logging-improvements-enhanced)
+- Python 3.12 + Pydantic 2.x (state models), PyYAML 6.x (config), structlog 24.x (logging), NetworkX (graph algorithms for shortest path) (012-spatial-maps)
+- File system (YAML configs, JSON checkpoints for spatial state persistence) (012-spatial-maps)
 
 ## Project Structure
 ```
@@ -29,9 +31,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 012-spatial-maps: Added Python 3.12 + Pydantic 2.x (state models), PyYAML 6.x (config), structlog 24.x (logging), NetworkX (graph algorithms for shortest path)
 - 011-logging-improvements-enhanced: Added Python 3.12 + structlog 24.x (existing), Python stdlib contextvars
 - 010-event-stream-the: Added Python 3.12 + Pydantic 2.x (data models), structlog 24.x (logging), httpx (async I/O), FastAPI (API server)
-- 009-dynamic-agent-management: Added Python 3.12 + Pydantic 2.x (data models), PyYAML 6.x (config), structlog 24.x (logging)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

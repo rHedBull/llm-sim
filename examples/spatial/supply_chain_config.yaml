@@ -1,0 +1,126 @@
+# Multi-Layer Network Supply Chain Simulation
+# Feature: 012-spatial-maps (Task T044)
+#
+# Scenario: Supply chain optimization with multiple transport modes
+# - Network topology from JSON with nodes and edges
+# - Multiple overlay networks (road, rail, air transport)
+# - Connection attributes: speed, capacity, cost
+# - Agents manage inventory and logistics across network
+# - Demonstrates network topology with multi-layer connectivity
+
+simulation:
+  name: "Supply Chain Network"
+  max_turns: 100
+  checkpoint_interval: 20
+
+# Spatial topology: Network graph from JSON
+spatial:
+  topology:
+    type: "network"
+    edges_file: "examples/spatial/supply_network.json"
+
+  # Initial location attributes from JSON are supplemented here
+  location_attributes:
+    "warehouse_1":
+      priority: "high"
+      climate_controlled: true
+    "warehouse_2":
+      priority: "medium"
+      climate_controlled: false
+    "factory_A":
+      shift_schedule: "24/7"
+      quality_certified: true
+    "factory_B":
+      shift_schedule: "day_shift"
+      quality_certified: true
+
+  # Additional network layers are defined in supply_network.json edges
+  # Networks: "road", "rail", "air" with different attributes
+  # The base topology creates a "default" network from all edges
+  # Individual networks can be queried separately for routing
+
+engine:
+  type: "supply_chain_engine"
+
+# Agents represent different entities in the supply chain
+agents:
+  - name: "factory_manager_A"
+    type: "llm_agent"
+    initial_location: "factory_A"
+
+  - name: "factory_manager_B"
+    type: "llm_agent"
+    initial_location: "factory_B"
+
+  - name: "warehouse_manager_1"
+    type: "llm_agent"
+    initial_location: "warehouse_1"
+
+  - name: "warehouse_manager_2"
+    type: "llm_agent"
+    initial_location: "warehouse_2"
+
+  - name: "distribution_manager_1"
+    type: "llm_agent"
+    initial_location: "distribution_1"
+
+  - name: "distribution_manager_2"
+    type: "llm_agent"
+    initial_location: "distribution_2"
+
+  - name: "logistics_coordinator"
+    type: "llm_agent"
+    initial_location: "warehouse_1"  # Central coordination
+
+# Validator ensures valid supply chain actions
+validator:
+  type: "supply_chain_validator"
+  domain: "logistics"
+
+# State variables for supply chain simulation
+state_variables:
+  agent_vars:
+    inventory:
+      type: int
+      default: 1000
+      min: 0
+    capacity_utilization:
+      type: float
+      default: 0.5
+      min: 0.0
+      max: 1.0
+    operating_cost:
+      type: float
+      default: 1000.0
+      min: 0.0
+    transport_mode:
+      type: categorical
+      values: ["road", "rail", "air", "none"]
+      default: "none"
+
+  global_vars:
+    total_shipments:
+      type: int
+      default: 0
+      min: 0
+    total_cost:
+      type: float
+      default: 0.0
+      min: 0.0
+    network_efficiency:
+      type: float
+      default: 0.7
+      min: 0.0
+      max: 1.0
+    demand_fulfillment_rate:
+      type: float
+      default: 0.85
+      min: 0.0
+      max: 1.0
+
+# LLM configuration for agent reasoning
+llm:
+  model: "gemma:3"
+  host: "http://localhost:11434"
+  timeout: 60.0
+  temperature: 0.7

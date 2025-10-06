@@ -1,0 +1,82 @@
+# Grid-Based Epidemic Simulation
+# Feature: 012-spatial-maps (Task T042)
+#
+# Scenario: Disease spread on a 10x10 grid
+# - Agents positioned at specific cells
+# - Infection spreads to adjacent cells (4-connectivity)
+# - Spatial movement validator enforces adjacency
+# - Demonstrates grid topology with state tracking
+
+simulation:
+  name: "Grid Epidemic"
+  max_turns: 20
+  checkpoint_interval: 5
+
+# Spatial topology: 10x10 grid with 4-way connectivity
+spatial:
+  topology:
+    type: "grid"
+    width: 10
+    height: 10
+    connectivity: 4  # N, S, E, W neighbors only
+    wrapping: false  # No toroidal wrapping
+
+  # Initial location attributes
+  # Mark the infection source location
+  location_attributes:
+    "5,5":
+      infection_source: true
+      terrain: "urban"
+
+engine:
+  type: "epidemic_engine"
+
+# Five agents positioned on the grid
+# person_0 starts at center (infected)
+# Others positioned adjacent to center
+agents:
+  - name: "person_0"
+    type: "random_walker"
+    initial_location: "5,5"  # Center of grid (infected patient zero)
+
+  - name: "person_1"
+    type: "random_walker"
+    initial_location: "4,5"  # West of center
+
+  - name: "person_2"
+    type: "random_walker"
+    initial_location: "6,5"  # East of center
+
+  - name: "person_3"
+    type: "random_walker"
+    initial_location: "5,4"  # North of center
+
+  - name: "person_4"
+    type: "random_walker"
+    initial_location: "5,6"  # South of center
+
+# Validator ensures agents only move to adjacent cells
+validator:
+  type: "spatial_movement_validator"
+
+# State variables for infection tracking
+state_variables:
+  agent_vars:
+    infected:
+      type: bool
+      default: false
+    days_infected:
+      type: int
+      default: 0
+      min: 0
+
+  global_vars:
+    total_infected:
+      type: int
+      default: 1  # person_0 starts infected
+      min: 0
+    infection_rate:
+      type: float
+      default: 0.3
+      min: 0.0
+      max: 1.0
