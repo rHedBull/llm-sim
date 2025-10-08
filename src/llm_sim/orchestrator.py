@@ -18,7 +18,7 @@ from llm_sim.utils.llm_client import LLMClient
 from llm_sim.utils.logging import configure_logging, get_logger
 from llm_sim.infrastructure.lifecycle.manager import LifecycleManager
 from llm_sim.infrastructure.base.agent import BaseAgent
-from llm_sim.infrastructure.events import EventWriter, WriteMode, VerbosityLevel, create_milestone_event
+from llm_sim.infrastructure.events import EventWriter, WriteMode, VerbosityLevel
 from llm_sim.models.event import SystemEvent, DecisionEvent, ActionEvent
 from llm_sim.infrastructure.spatial.factory import SpatialStateFactory
 from llm_sim.infrastructure.spatial.mutations import SpatialMutations
@@ -463,12 +463,12 @@ class SimulationOrchestrator:
             # Start event writer
             await self.event_writer.start()
 
-            # Emit simulation_start milestone
-            start_event = create_milestone_event(
+            # Emit simulation_start system event
+            start_event = SystemEvent(
                 simulation_id=self.run_id,
                 turn_number=0,
-                milestone_type="simulation_start",
-                description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents"
+                description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents",
+                details={"system_event_type": "simulation_start"}
             )
             self.event_writer.emit(start_event)
 
@@ -534,12 +534,12 @@ class SimulationOrchestrator:
                 # Yield control to event loop so writer task can process events
                 await asyncio.sleep(0.01)
 
-            # Emit simulation_end milestone
-            end_event = create_milestone_event(
+            # Emit simulation_end system event
+            end_event = SystemEvent(
                 simulation_id=self.run_id,
                 turn_number=state.turn,
-                milestone_type="simulation_end",
-                description=f"Simulation completed after {state.turn} turns"
+                description=f"Simulation completed after {state.turn} turns",
+                details={"system_event_type": "simulation_end"}
             )
             self.event_writer.emit(end_event)
 
@@ -588,12 +588,12 @@ class SimulationOrchestrator:
         # Start event writer
         await self.event_writer.start()
 
-        # Emit simulation_start milestone
-        start_event = create_milestone_event(
+        # Emit simulation_start system event
+        start_event = SystemEvent(
             simulation_id=self.run_id,
             turn_number=0,
-            milestone_type="simulation_start",
-            description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents"
+            description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents",
+            details={"system_event_type": "simulation_start"}
         )
         self.event_writer.emit(start_event)
 
@@ -656,12 +656,12 @@ class SimulationOrchestrator:
                 log_data["total_value"] = state.global_state.total_economic_value
             self.logger.info("turn_completed", **log_data)
 
-        # Emit simulation_end milestone
-        end_event = create_milestone_event(
+        # Emit simulation_end system event
+        end_event = SystemEvent(
             simulation_id=self.run_id,
             turn_number=state.turn,
-            milestone_type="simulation_end",
-            description=f"Simulation completed after {state.turn} turns"
+            description=f"Simulation completed after {state.turn} turns",
+            details={"system_event_type": "simulation_end"}
         )
         self.event_writer.emit(end_event)
 
@@ -754,13 +754,14 @@ class SimulationOrchestrator:
             actions.append(action)
 
             # Emit DECISION event
+            action_desc = getattr(action, 'action_string', None) or action.action_name
             decision_event = DecisionEvent(
                 simulation_id=self.run_id,
                 turn_number=state.turn + 1,
                 agent_id=agent_name,
-                description=f"{agent_name} decided: {action.description[:100]}",
+                description=f"{agent_name} decided: {action_desc[:100]}",
                 details={
-                    "action_description": action.description,
+                    "action_name": action.action_name,
                     "decision_type": "agent_action"
                 }
             )
@@ -771,14 +772,15 @@ class SimulationOrchestrator:
 
         # Emit ACTION events for validated actions
         for action in validated_actions:
+            action_desc = getattr(action, 'action_string', None) or action.action_name
             action_event = ActionEvent(
                 simulation_id=self.run_id,
                 turn_number=state.turn + 1,
-                agent_id=action.agent_id,
-                description=f"Action: {action.description[:100]}",
+                agent_id=action.agent_name,
+                description=f"Action: {action_desc[:100]}",
                 details={
-                    "action_type": action.action_type if hasattr(action, 'action_type') else "unknown",
-                    "action_description": action.description,
+                    "action_name": action.action_name,
+                    "action_description": action_desc,
                     "validated": True
                 }
             )
@@ -843,13 +845,14 @@ class SimulationOrchestrator:
             actions.append(action)
 
             # Emit DECISION event
+            action_desc = getattr(action, 'action_string', None) or action.action_name
             decision_event = DecisionEvent(
                 simulation_id=self.run_id,
                 turn_number=state.turn + 1,
                 agent_id=agent_name,
-                description=f"{agent_name} decided: {action.description[:100]}",
+                description=f"{agent_name} decided: {action_desc[:100]}",
                 details={
-                    "action_description": action.description,
+                    "action_name": action.action_name,
                     "decision_type": "agent_action"
                 }
             )
@@ -860,14 +863,15 @@ class SimulationOrchestrator:
 
         # Emit ACTION events for validated actions
         for action in validated_actions:
+            action_desc = getattr(action, 'action_string', None) or action.action_name
             action_event = ActionEvent(
                 simulation_id=self.run_id,
                 turn_number=state.turn + 1,
-                agent_id=action.agent_id,
-                description=f"Action: {action.description[:100]}",
+                agent_id=action.agent_name,
+                description=f"Action: {action_desc[:100]}",
                 details={
-                    "action_type": action.action_type if hasattr(action, 'action_type') else "unknown",
-                    "action_description": action.description,
+                    "action_name": action.action_name,
+                    "action_description": action_desc,
                     "validated": True
                 }
             )

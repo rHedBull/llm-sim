@@ -180,3 +180,7 @@ class SystemEvent(Event):
     def retry_count(self) -> Optional[int]:
         """Get retry count from details."""
         return self.details.get("retry_count") if self.details else None
+
+
+# Backward compatibility alias
+StateEvent = EnvEvent

@@ -89,18 +89,18 @@ def test_basic_event_capture(minimal_config, tmp_output_dir):
         assert "event_type" in event, f"Event missing event_type: {event}"
         assert "simulation_id" in event, f"Event missing simulation_id: {event}"
 
-    # Verify MILESTONE events are present
-    milestone_events = [e for e in events if e["event_type"] == "MILESTONE"]
-    assert len(milestone_events) > 0, "No MILESTONE events found"
+    # Verify SYSTEM events are present (turn/simulation lifecycle events)
+    system_events = [e for e in events if e["event_type"] == "SYSTEM"]
+    assert len(system_events) > 0, "No SYSTEM events found"
 
     # Verify simulation_start and simulation_end events
-    milestone_types = [e["details"]["milestone_type"] for e in milestone_events]
-    assert "simulation_start" in milestone_types, "No simulation_start milestone"
-    assert "simulation_end" in milestone_types, "No simulation_end milestone"
+    system_types = [e["details"]["system_event_type"] for e in system_events if "system_event_type" in e["details"]]
+    assert "simulation_start" in system_types, "No simulation_start system event"
+    assert "simulation_end" in system_types, "No simulation_end system event"
 
     # Verify turn_start and turn_end events for each turn
-    turn_start_count = sum(1 for mt in milestone_types if mt == "turn_start")
-    turn_end_count = sum(1 for mt in milestone_types if mt == "turn_end")
+    turn_start_count = sum(1 for st in system_types if st == "turn_start")
+    turn_end_count = sum(1 for st in system_types if st == "turn_end")
 
     # Should have turn_start and turn_end for each turn (3 turns)
     assert turn_start_count == 3, f"Expected 3 turn_start events, got {turn_start_count}"

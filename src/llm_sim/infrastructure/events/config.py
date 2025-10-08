@@ -20,11 +20,11 @@ class VerbosityLevel(str, Enum):
 
 # Verbosity level hierarchy - what event types each level captures
 VERBOSITY_EVENT_TYPES: dict[VerbosityLevel, Set[str]] = {
-    VerbosityLevel.MILESTONE: {"MILESTONE"},
-    VerbosityLevel.DECISION: {"MILESTONE", "DECISION"},
-    VerbosityLevel.ACTION: {"MILESTONE", "DECISION", "ACTION"},
-    VerbosityLevel.STATE: {"MILESTONE", "DECISION", "ACTION", "STATE"},
-    VerbosityLevel.DETAIL: {"MILESTONE", "DECISION", "ACTION", "STATE", "DETAIL", "SYSTEM"},
+    VerbosityLevel.MILESTONE: {"MILESTONE", "SYSTEM"},  # SYSTEM includes turn/simulation lifecycle events
+    VerbosityLevel.DECISION: {"MILESTONE", "SYSTEM", "DECISION"},
+    VerbosityLevel.ACTION: {"MILESTONE", "SYSTEM", "DECISION", "ACTION"},
+    VerbosityLevel.STATE: {"MILESTONE", "SYSTEM", "DECISION", "ACTION", "ENV"},
+    VerbosityLevel.DETAIL: {"MILESTONE", "SYSTEM", "DECISION", "ACTION", "ENV", "DETAIL"},
 }
 
 

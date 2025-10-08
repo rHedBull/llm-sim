@@ -9,10 +9,13 @@ from llm_sim.models.event import (
     ActionEvent,
     DecisionEvent,
     DetailEvent,
+    EnvEvent,
     MilestoneEvent,
-    StateEvent,
     SystemEvent,
 )
+
+# Alias for backward compatibility
+StateEvent = EnvEvent
 
 
 def create_milestone_event(

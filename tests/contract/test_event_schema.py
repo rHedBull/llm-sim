@@ -141,7 +141,7 @@ def test_state_event_schema():
         }
     )
 
-    assert event.event_type == "STATE"
+    assert event.event_type == "ENV"  # StateEvent is an alias for EnvEvent
     assert event.details["variable_name"] == "wealth"
     assert event.details["old_value"] == 1000
     assert event.details["new_value"] == 1150
