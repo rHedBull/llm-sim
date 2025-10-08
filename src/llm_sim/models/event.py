@@ -17,7 +17,7 @@ class Event(BaseModel):
     event_id: str = Field(default_factory=lambda: str(ULID()))
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     turn_number: int = Field(ge=0)
-    event_type: Literal["MILESTONE", "DECISION", "ACTION", "STATE", "DETAIL", "SYSTEM"]
+    event_type: Literal["MILESTONE", "DECISION", "ACTION", "ENV", "DETAIL", "SYSTEM"]
     simulation_id: str
     agent_id: Optional[str] = None
     caused_by: Optional[List[str]] = None
@@ -101,10 +101,10 @@ class ActionEvent(Event):
         return self.details.get("action_payload") if self.details else None
 
 
-class StateEvent(Event):
-    """Event for state variable transitions."""
+class EnvEvent(Event):
+    """Event for environment/state variable transitions."""
 
-    event_type: Literal["STATE"] = "STATE"
+    event_type: Literal["ENV"] = "ENV"
 
     def __init__(self, **data: Any) -> None:
         """Initialize state event."""

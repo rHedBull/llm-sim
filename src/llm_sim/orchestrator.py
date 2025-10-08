@@ -19,6 +19,7 @@ from llm_sim.utils.logging import configure_logging, get_logger
 from llm_sim.infrastructure.lifecycle.manager import LifecycleManager
 from llm_sim.infrastructure.base.agent import BaseAgent
 from llm_sim.infrastructure.events import EventWriter, WriteMode, VerbosityLevel, create_milestone_event
+from llm_sim.models.event import SystemEvent, DecisionEvent, ActionEvent
 from llm_sim.infrastructure.spatial.factory import SpatialStateFactory
 from llm_sim.infrastructure.spatial.mutations import SpatialMutations
 from llm_sim.infrastructure.spatial.query import SpatialQuery
@@ -489,24 +490,24 @@ class SimulationOrchestrator:
 
             # Run simulation turns
             while not self.engine.check_termination(state):
-                # Emit turn_start milestone
-                turn_start_event = create_milestone_event(
+                # Emit turn_start system event
+                turn_start_event = SystemEvent(
                     simulation_id=self.run_id,
                     turn_number=state.turn + 1,
-                    milestone_type="turn_start",
-                    description=f"Turn {state.turn + 1} started"
+                    description=f"Turn {state.turn + 1} started",
+                    details={"system_event_type": "turn_start"}
                 )
                 self.event_writer.emit(turn_start_event)
 
                 state = self._run_turn_sync(state)
                 self.history.append(state)
 
-                # Emit turn_end milestone
-                turn_end_event = create_milestone_event(
+                # Emit turn_end system event
+                turn_end_event = SystemEvent(
                     simulation_id=self.run_id,
                     turn_number=state.turn,
-                    milestone_type="turn_end",
-                    description=f"Turn {state.turn} completed"
+                    description=f"Turn {state.turn} completed",
+                    details={"system_event_type": "turn_end"}
                 )
                 self.event_writer.emit(turn_end_event)
 
@@ -614,24 +615,24 @@ class SimulationOrchestrator:
 
         # Run simulation turns
         while not self.engine.check_termination(state):
-            # Emit turn_start milestone
-            turn_start_event = create_milestone_event(
+            # Emit turn_start system event
+            turn_start_event = SystemEvent(
                 simulation_id=self.run_id,
                 turn_number=state.turn + 1,
-                milestone_type="turn_start",
-                description=f"Turn {state.turn + 1} started"
+                description=f"Turn {state.turn + 1} started",
+                details={"system_event_type": "turn_start"}
             )
             self.event_writer.emit(turn_start_event)
 
             state = await self._run_turn_async(state)
             self.history.append(state)
 
-            # Emit turn_end milestone
-            turn_end_event = create_milestone_event(
+            # Emit turn_end system event
+            turn_end_event = SystemEvent(
                 simulation_id=self.run_id,
                 turn_number=state.turn,
-                milestone_type="turn_end",
-                description=f"Turn {state.turn} completed"
+                description=f"Turn {state.turn} completed",
+                details={"system_event_type": "turn_end"}
             )
             self.event_writer.emit(turn_end_event)
 
@@ -752,8 +753,36 @@ class SimulationOrchestrator:
             action = await agent.decide_action(observation)
             actions.append(action)
 
+            # Emit DECISION event
+            decision_event = DecisionEvent(
+                simulation_id=self.run_id,
+                turn_number=state.turn + 1,
+                agent_id=agent_name,
+                description=f"{agent_name} decided: {action.description[:100]}",
+                details={
+                    "action_description": action.description,
+                    "decision_type": "agent_action"
+                }
+            )
+            self.event_writer.emit(decision_event)
+
         # Validate actions
         validated_actions = await self.validator.validate_actions(actions, state)
+
+        # Emit ACTION events for validated actions
+        for action in validated_actions:
+            action_event = ActionEvent(
+                simulation_id=self.run_id,
+                turn_number=state.turn + 1,
+                agent_id=action.agent_id,
+                description=f"Action: {action.description[:100]}",
+                details={
+                    "action_type": action.action_type if hasattr(action, 'action_type') else "unknown",
+                    "action_description": action.description,
+                    "validated": True
+                }
+            )
+            self.event_writer.emit(action_event)
 
         # Execute turn
         new_state = await self.engine.run_turn(validated_actions)
@@ -813,8 +842,36 @@ class SimulationOrchestrator:
             action = agent.decide_action(observation)
             actions.append(action)
 
+            # Emit DECISION event
+            decision_event = DecisionEvent(
+                simulation_id=self.run_id,
+                turn_number=state.turn + 1,
+                agent_id=agent_name,
+                description=f"{agent_name} decided: {action.description[:100]}",
+                details={
+                    "action_description": action.description,
+                    "decision_type": "agent_action"
+                }
+            )
+            self.event_writer.emit(decision_event)
+
         # Validate actions
         validated_actions = self.validator.validate_actions(actions, state)
+
+        # Emit ACTION events for validated actions
+        for action in validated_actions:
+            action_event = ActionEvent(
+                simulation_id=self.run_id,
+                turn_number=state.turn + 1,
+                agent_id=action.agent_id,
+                description=f"Action: {action.description[:100]}",
+                details={
+                    "action_type": action.action_type if hasattr(action, 'action_type') else "unknown",
+                    "action_description": action.description,
+                    "validated": True
+                }
+            )
+            self.event_writer.emit(action_event)
 
         # Execute turn
         new_state = self.engine.run_turn(validated_actions)
