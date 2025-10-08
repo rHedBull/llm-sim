@@ -17,6 +17,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-06
 - N/A (logging only - outputs to stdout/files) (011-logging-improvements-enhanced)
 - Python 3.12 + Pydantic 2.x (state models), PyYAML 6.x (config), structlog 24.x (logging), NetworkX (graph algorithms for shortest path) (012-spatial-maps)
 - File system (YAML configs, JSON checkpoints for spatial state persistence) (012-spatial-maps)
+- Python 3.12 + Pydantic 2.x (data models), structlog 24.x (logging), aiofiles (async I/O for async mode) (013-event-writer-fix)
+- File system (JSONL files in `output/{run_id}/events.jsonl`) (013-event-writer-fix)
 
 ## Project Structure
 ```
@@ -31,9 +33,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 013-event-writer-fix: Added Python 3.12 + Pydantic 2.x (data models), structlog 24.x (logging), aiofiles (async I/O for async mode)
 - 012-spatial-maps: Added Python 3.12 + Pydantic 2.x (state models), PyYAML 6.x (config), structlog 24.x (logging), NetworkX (graph algorithms for shortest path)
 - 011-logging-improvements-enhanced: Added Python 3.12 + structlog 24.x (existing), Python stdlib contextvars
-- 010-event-stream-the: Added Python 3.12 + Pydantic 2.x (data models), structlog 24.x (logging), httpx (async I/O), FastAPI (API server)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

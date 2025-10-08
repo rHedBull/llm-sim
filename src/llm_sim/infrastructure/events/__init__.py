@@ -9,10 +9,11 @@ from llm_sim.infrastructure.events.builder import (
     create_system_event,
 )
 from llm_sim.infrastructure.events.config import VerbosityLevel, should_log_event
-from llm_sim.infrastructure.events.writer import EventWriter
+from llm_sim.infrastructure.events.writer import EventWriter, WriteMode
 
 __all__ = [
     "EventWriter",
+    "WriteMode",
     "VerbosityLevel",
     "should_log_event",
     "create_milestone_event",

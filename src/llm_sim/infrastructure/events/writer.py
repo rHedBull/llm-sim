@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +18,12 @@ logger = get_logger(__name__)
 
 # File rotation threshold (500MB)
 ROTATION_SIZE_BYTES = 500 * 1024 * 1024
+
+
+class WriteMode(str, Enum):
+    """Event writer operation modes."""
+    ASYNC = "async"
+    SYNC = "sync"
 
 
 class EventWriter:
@@ -34,6 +41,7 @@ class EventWriter:
         verbosity: VerbosityLevel = VerbosityLevel.ACTION,
         max_queue_size: int = 10000,
         max_file_size: int = ROTATION_SIZE_BYTES,
+        mode: WriteMode = WriteMode.ASYNC,
     ) -> None:
         """Initialize event writer.
 
@@ -41,14 +49,16 @@ class EventWriter:
             output_dir: Directory for event files
             simulation_id: Simulation run identifier
             verbosity: Event verbosity level
-            max_queue_size: Maximum events to queue before dropping
+            max_queue_size: Maximum events to queue before dropping (async mode only)
             max_file_size: Maximum file size before rotation (default 500MB)
+            mode: Write mode (async or sync)
         """
         self.output_dir = Path(output_dir)
         self.simulation_id = simulation_id
         self.verbosity = verbosity
         self.max_queue_size = max_queue_size
         self.max_file_size = max_file_size
+        self.mode = mode
 
         self.queue: asyncio.Queue[Event] = asyncio.Queue(maxsize=max_queue_size)
         self.writer_task: Optional[asyncio.Task] = None
@@ -62,8 +72,25 @@ class EventWriter:
         # Ensure output directory exists
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        logger.info(
+            "event_writer_initialized",
+            mode=self.mode.value,
+            output_dir=str(self.output_dir),
+            verbosity=self.verbosity.value,
+        )
+
     async def start(self) -> None:
-        """Start the background writer task."""
+        """Start the background writer task (async mode only).
+
+        In sync mode, this is a no-op since writes happen immediately.
+        """
+        if self.mode == WriteMode.SYNC:
+            logger.info(
+                "event_writer_start_skipped",
+                reason="sync mode writes immediately",
+            )
+            return
+
         if self.running:
             return
 
@@ -78,9 +105,19 @@ class EventWriter:
     async def stop(self, timeout: float = 10.0) -> None:
         """Stop the writer and flush pending events.
 
+        In sync mode, this is a no-op since all writes are already flushed.
+
         Args:
-            timeout: Maximum seconds to wait for queue drain
+            timeout: Maximum seconds to wait for queue drain (async mode only)
         """
+        if self.mode == WriteMode.SYNC:
+            logger.info(
+                "event_writer_stopped",
+                mode="sync",
+                note="all events written synchronously",
+            )
+            return
+
         if not self.running:
             return
 
@@ -111,26 +148,30 @@ class EventWriter:
         )
 
     def emit(self, event: Event) -> None:
-        """Emit an event (non-blocking).
+        """Emit an event (mode-aware, non-blocking in async mode).
 
         Args:
             event: Event to emit
         """
-        # Check verbosity filter
+        # Check verbosity filter (shared by both modes)
         if not should_log_event(event.event_type, self.verbosity):
             return
 
-        # Try to enqueue without blocking
-        try:
-            self.queue.put_nowait(event)
-        except asyncio.QueueFull:
-            self.dropped_count += 1
-            if self.dropped_count % 100 == 0:  # Log every 100 drops
-                logger.warning(
-                    "event_queue_full_dropping",
-                    event_id=event.event_id,
-                    total_dropped=self.dropped_count,
-                )
+        if self.mode == WriteMode.SYNC:
+            # Synchronous write - immediate, blocking
+            self._write_event_sync(event)
+        else:
+            # Async write - queue and return immediately
+            try:
+                self.queue.put_nowait(event)
+            except asyncio.QueueFull:
+                self.dropped_count += 1
+                if self.dropped_count % 100 == 0:  # Log every 100 drops
+                    logger.warning(
+                        "event_queue_full_dropping",
+                        event_id=event.event_id,
+                        total_dropped=self.dropped_count,
+                    )
 
     async def _write_loop(self) -> None:
         """Background loop that drains queue and writes events."""
@@ -201,6 +242,75 @@ class EventWriter:
                 )
             except OSError as e:
                 logger.error("event_file_rotation_failed", error=str(e))
+
+        # Reset size counter
+        self.current_size = 0
+
+    def _write_event_sync(self, event: Event) -> None:
+        """Synchronously write event to file with rotation check.
+
+        This method is blocking and should only be called in sync mode.
+        File writes are flushed immediately to ensure persistence.
+
+        Args:
+            event: Event to write
+        """
+        # Check if rotation needed
+        if self.current_size >= self.max_file_size:
+            self._rotate_file_sync()
+
+        # Serialize event
+        event_json = event.model_dump_json()
+        event_line = event_json + "\n"
+        event_bytes = event_line.encode("utf-8")
+
+        # Synchronous atomic write with immediate flush
+        try:
+            with open(self.current_file, mode="a", encoding="utf-8") as f:
+                f.write(event_line)
+                f.flush()  # Force write to disk
+                os.fsync(f.fileno())  # Ensure OS buffers are flushed
+
+            # Update size
+            self.current_size += len(event_bytes)
+
+        except IOError as e:
+            logger.error(
+                "event_file_write_failed",
+                file=str(self.current_file),
+                event_id=event.event_id,
+                error=str(e),
+                mode="sync",
+            )
+
+    def _rotate_file_sync(self) -> None:
+        """Synchronously rotate the current event file when size threshold exceeded.
+
+        This is a blocking operation that renames the current file and resets
+        the size counter. Safe to call from sync contexts.
+        """
+        # Generate timestamped filename with microseconds to avoid collisions
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
+        rotated_file = self.output_dir / f"events_{timestamp}.jsonl"
+
+        # Rename current file
+        if self.current_file.exists():
+            try:
+                os.rename(self.current_file, rotated_file)
+                size_mb = self.current_size / (1024 * 1024)
+                logger.info(
+                    "event_file_rotated",
+                    old_file=str(self.current_file),
+                    new_file=str(rotated_file),
+                    size_mb=round(size_mb, 2),
+                    mode="sync",
+                )
+            except OSError as e:
+                logger.error(
+                    "event_file_rotation_failed",
+                    error=str(e),
+                    mode="sync",
+                )
 
         # Reset size counter
         self.current_size = 0

@@ -18,7 +18,7 @@ from llm_sim.utils.llm_client import LLMClient
 from llm_sim.utils.logging import configure_logging, get_logger
 from llm_sim.infrastructure.lifecycle.manager import LifecycleManager
 from llm_sim.infrastructure.base.agent import BaseAgent
-from llm_sim.infrastructure.events import EventWriter, VerbosityLevel, create_milestone_event
+from llm_sim.infrastructure.events import EventWriter, WriteMode, VerbosityLevel, create_milestone_event
 from llm_sim.infrastructure.spatial.factory import SpatialStateFactory
 from llm_sim.infrastructure.spatial.mutations import SpatialMutations
 from llm_sim.infrastructure.spatial.query import SpatialQuery
@@ -111,7 +111,8 @@ class SimulationOrchestrator:
         self.event_writer = EventWriter(
             output_dir=output_dir,
             simulation_id=self.run_id,
-            verbosity=event_verbosity
+            verbosity=event_verbosity,
+            mode=WriteMode.SYNC,  # Use sync mode for sync execution
         )
 
         # Set event writer on engine for ACTION/STATE event emission
