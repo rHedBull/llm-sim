@@ -51,7 +51,7 @@ def tmp_output_dir(tmp_path):
 
 
 def test_milestone_verbosity_only_milestones(minimal_config, tmp_output_dir):
-    """T017: Verify MILESTONE verbosity captures only MILESTONE events."""
+    """T017: Verify MILESTONE verbosity captures only MILESTONE and SYSTEM events (lifecycle)."""
     orchestrator = SimulationOrchestrator(
         config=minimal_config,
         output_root=tmp_output_dir,
@@ -69,14 +69,14 @@ def test_milestone_verbosity_only_milestones(minimal_config, tmp_output_dir):
         for line in f:
             events.append(json.loads(line))
 
-    # Verify only MILESTONE events
+    # Verify only MILESTONE and SYSTEM events (SYSTEM replaces MILESTONE for lifecycle events)
     event_types = set(e["event_type"] for e in events)
-    assert event_types == {"MILESTONE"}, \
-        f"MILESTONE verbosity should only have MILESTONE events, found: {event_types}"
+    assert event_types == {"SYSTEM"} or event_types == {"MILESTONE", "SYSTEM"}, \
+        f"MILESTONE verbosity should only have MILESTONE/SYSTEM events, found: {event_types}"
 
-    # Verify minimum number of milestones (start + end + turns)
+    # Verify minimum number of lifecycle events (start + end + turns)
     assert len(events) >= 8, \
-        f"Expected at least 8 MILESTONE events (start + 3×(turn_start+turn_end) + end), got {len(events)}"
+        f"Expected at least 8 lifecycle events (start + 3×(turn_start+turn_end) + end), got {len(events)}"
 
 
 def test_detail_verbosity_captures_more_events(minimal_config, tmp_output_dir):
@@ -164,8 +164,11 @@ def test_verbosity_hierarchy(minimal_config, tmp_output_dir):
     milestone_types_in_action = {e["event_type"] for e in results[VerbosityLevel.ACTION]}
     milestone_types_in_detail = {e["event_type"] for e in results[VerbosityLevel.DETAIL]}
 
-    assert "MILESTONE" in milestone_types_in_action, "ACTION level should include MILESTONE events"
-    assert "MILESTONE" in milestone_types_in_detail, "DETAIL level should include MILESTONE events"
+    # SYSTEM events replaced MILESTONE for lifecycle events
+    assert "SYSTEM" in milestone_types_in_action or "MILESTONE" in milestone_types_in_action, \
+        "ACTION level should include MILESTONE/SYSTEM events"
+    assert "SYSTEM" in milestone_types_in_detail or "MILESTONE" in milestone_types_in_detail, \
+        "DETAIL level should include MILESTONE/SYSTEM events"
 
 
 def test_action_verbosity_excludes_state_detail(minimal_config, tmp_output_dir):
@@ -187,10 +190,11 @@ def test_action_verbosity_excludes_state_detail(minimal_config, tmp_output_dir):
         for line in f:
             events.append(json.loads(line))
 
-    # Verify no STATE or DETAIL events
+    # Verify no ENV (formerly STATE) or DETAIL events
     event_types = {e["event_type"] for e in events}
-    assert "STATE" not in event_types, "ACTION verbosity should not include STATE events"
+    assert "ENV" not in event_types, "ACTION verbosity should not include ENV events"
     assert "DETAIL" not in event_types, "ACTION verbosity should not include DETAIL events"
 
-    # Should include MILESTONE, potentially DECISION and ACTION
-    assert "MILESTONE" in event_types, "ACTION verbosity should include MILESTONE events"
+    # Should include SYSTEM (lifecycle events), potentially DECISION and ACTION
+    assert "SYSTEM" in event_types or "MILESTONE" in event_types, \
+        "ACTION verbosity should include SYSTEM/MILESTONE events"
