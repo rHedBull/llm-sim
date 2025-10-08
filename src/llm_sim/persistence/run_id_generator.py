@@ -23,6 +23,8 @@ class RunIDGenerator:
             num_agents: Number of agents
             start_time: Simulation start time
             output_root: Output directory for collision checking
+                        If output_root is a specific run directory (not just "output"),
+                        use its name as the run_id
 
         Returns:
             Unique run ID: {name}_{N}agents_{YYYYMMDD}_{HHMMSS}_{seq}
@@ -30,6 +32,11 @@ class RunIDGenerator:
         Raises:
             RunIDCollisionError: If collision cannot be resolved
         """
+        # If output_root points to a specific run directory (created by server),
+        # use that directory name as the run_id
+        if output_root.exists() and output_root.name.startswith("run_"):
+            return output_root.name
+
         # Sanitize simulation name
         sanitized_name = simulation_name.replace("/", "_").replace(" ", "_")
 

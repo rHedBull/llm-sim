@@ -403,7 +403,12 @@ class SimulationOrchestrator:
                     )
 
         # Return state with spatial_state attached
-        return state.model_copy(update={"spatial_state": spatial_state})
+        state_with_spatial = state.model_copy(update={"spatial_state": spatial_state})
+
+        # Update engine's current_state so it uses spatial-enhanced state
+        self.engine.current_state = state_with_spatial
+
+        return state_with_spatial
 
     def run(self) -> Dict[str, Any]:
         """Run the simulation.

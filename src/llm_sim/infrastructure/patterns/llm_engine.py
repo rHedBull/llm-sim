@@ -155,7 +155,8 @@ class LLMEngine(BaseEngine):
         new_state = working_state.model_copy(
             update={
                 "reasoning_chains": reasoning_chains,
-                "turn": working_state.turn + 1  # Increment once per simulation turn
+                "turn": working_state.turn + 1,  # Increment once per simulation turn
+                "spatial_state": working_state.spatial_state  # Preserve spatial state
             }
         )
 

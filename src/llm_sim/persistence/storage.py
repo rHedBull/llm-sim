@@ -31,7 +31,7 @@ class JSONStorage:
 
             # Write to temp file
             temp_path = Path(str(path) + ".tmp")
-            json_data = data.model_dump_json(indent=2)
+            json_data = data.model_dump_json(indent=2, exclude_none=False)
 
             with open(temp_path, 'w') as f:
                 f.write(json_data)

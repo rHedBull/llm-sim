@@ -66,9 +66,38 @@
           "items": {
             "type": "object"
           }
+        },
+        "spatial_state": {
+          "oneOf": [
+            {
+              "type": "null",
+              "description": "No spatial features enabled"
+            },
+            {
+              "type": "object",
+              "description": "Spatial state when spatial features are enabled",
+              "properties": {
+                "topology": {
+                  "type": "object",
+                  "description": "Spatial topology configuration"
+                },
+                "agent_positions": {
+                  "type": "object",
+                  "description": "Map of agent names to location coordinates"
+                },
+                "location_attributes": {
+                  "type": "object",
+                  "description": "Attributes for each location"
+                }
+              },
+              "required": ["topology", "agent_positions"],
+              "additionalProperties": true
+            }
+          ],
+          "description": "Optional spatial state - must be present (null if spatial disabled, object if enabled)"
         }
       },
-      "required": ["turn", "agents", "global_state"],
+      "required": ["turn", "agents", "global_state", "spatial_state"],
       "additionalProperties": false
     }
   },

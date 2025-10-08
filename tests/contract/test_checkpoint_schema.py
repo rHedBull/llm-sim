@@ -38,6 +38,7 @@ class TestValidCheckpoints:
                 },
                 "global_state": {"inflation": 0.03},
                 "reasoning_chains": [],
+                "spatial_state": None,
             },
         }
         validate(instance=checkpoint, schema=schema)
@@ -56,6 +57,7 @@ class TestValidCheckpoints:
                 "agents": {"A": {"name": "A"}},
                 "global_state": {},
                 "reasoning_chains": [],
+                "spatial_state": None,
             },
         }
         validate(instance=checkpoint, schema=schema)
@@ -74,6 +76,7 @@ class TestValidCheckpoints:
                 "agents": {},
                 "global_state": {},
                 "reasoning_chains": [],
+                "spatial_state": None,
             },
         }
         validate(instance=checkpoint, schema=schema)
@@ -187,5 +190,92 @@ class TestInvalidCheckpoints:
                 "global_state": {},
             },
         }
+        with pytest.raises(ValidationError):
+            validate(instance=checkpoint, schema=schema)
+
+
+class TestSpatialStateCheckpoints:
+    """Tests for spatial_state field serialization in checkpoints."""
+
+    def test_checkpoint_with_spatial_state_validates(self, schema):
+        """Checkpoint with spatial_state should validate."""
+        checkpoint = {
+            "metadata": {
+                "run_id": "spatial_test",
+                "turn": 5,
+                "timestamp": "2025-10-07T10:00:00Z",
+                "schema_hash": "b" * 64,
+            },
+            "state": {
+                "turn": 5,
+                "agents": {"Agent1": {"name": "Agent1"}},
+                "global_state": {},
+                "reasoning_chains": [],
+                "spatial_state": {
+                    "topology": {
+                        "type": "grid",
+                        "width": 8,
+                        "height": 8,
+                        "connectivity": 4,
+                        "wrapping": False
+                    },
+                    "agent_positions": {
+                        "Agent1": "1,1"
+                    },
+                    "location_attributes": {
+                        "1,1": {"city": "TestCity"}
+                    }
+                }
+            },
+        }
+        validate(instance=checkpoint, schema=schema)
+
+    def test_checkpoint_with_null_spatial_state_validates(self, schema):
+        """Checkpoint with spatial_state=null should validate.
+
+        This is the critical test for the serialization bug fix.
+        When spatial features are disabled, spatial_state should be null,
+        not missing entirely from the JSON.
+        """
+        checkpoint = {
+            "metadata": {
+                "run_id": "non_spatial_test",
+                "turn": 5,
+                "timestamp": "2025-10-07T10:00:00Z",
+                "schema_hash": "c" * 64,
+            },
+            "state": {
+                "turn": 5,
+                "agents": {"Agent1": {"name": "Agent1"}},
+                "global_state": {},
+                "reasoning_chains": [],
+                "spatial_state": None  # Critical: must be present even when null
+            },
+        }
+        validate(instance=checkpoint, schema=schema)
+
+    def test_checkpoint_without_spatial_state_field_rejected(self, schema):
+        """Checkpoint missing spatial_state field entirely should be rejected.
+
+        This test verifies that the schema requires spatial_state to be present.
+        The field must exist (even if null) for UI compatibility.
+        """
+        checkpoint = {
+            "metadata": {
+                "run_id": "missing_spatial",
+                "turn": 5,
+                "timestamp": "2025-10-07T10:00:00Z",
+                "schema_hash": "d" * 64,
+            },
+            "state": {
+                "turn": 5,
+                "agents": {"Agent1": {"name": "Agent1"}},
+                "global_state": {},
+                "reasoning_chains": [],
+                # spatial_state is completely missing - this should fail
+            },
+        }
+        # This test currently expects rejection, but may pass if schema
+        # doesn't require spatial_state. This documents the intended behavior.
         with pytest.raises(ValidationError):
             validate(instance=checkpoint, schema=schema)
