@@ -106,13 +106,16 @@ class SimulationOrchestrator:
         # State tracking
         self.history: List[SimulationState] = []
 
+        # Detect if any component has async methods to choose appropriate WriteMode
+        write_mode = self._detect_write_mode()
+
         # Initialize event writer for event streaming
         output_dir = self.output_root / self.run_id
         self.event_writer = EventWriter(
             output_dir=output_dir,
             simulation_id=self.run_id,
             verbosity=event_verbosity,
-            mode=WriteMode.SYNC,  # Use sync mode for sync execution
+            mode=write_mode,
         )
 
         # Set event writer on engine for ACTION/STATE event emission
@@ -411,6 +414,21 @@ class SimulationOrchestrator:
 
         return state_with_spatial
 
+    def _detect_write_mode(self) -> WriteMode:
+        """Detect appropriate WriteMode based on component async methods.
+
+        Returns:
+            WriteMode.ASYNC if any component has async methods, WriteMode.SYNC otherwise
+        """
+        import inspect
+
+        # Check if any component has async methods
+        has_async = (
+            inspect.iscoroutinefunction(self.agents[0].decide_action) if self.agents else False
+        ) or inspect.iscoroutinefunction(self.validator.validate_actions) or inspect.iscoroutinefunction(self.engine.run_turn)
+
+        return WriteMode.ASYNC if has_async else WriteMode.SYNC
+
     def run(self) -> Dict[str, Any]:
         """Run the simulation.
 
@@ -562,6 +580,18 @@ class SimulationOrchestrator:
 
     async def _run_async(self) -> Dict[str, Any]:
         """Run simulation asynchronously (for LLM components)."""
+        # Start event writer
+        await self.event_writer.start()
+
+        # Emit simulation_start milestone
+        start_event = create_milestone_event(
+            simulation_id=self.run_id,
+            turn_number=0,
+            milestone_type="simulation_start",
+            description=f"Simulation '{self.config.simulation.name}' started with {len(self.agents)} agents"
+        )
+        self.event_writer.emit(start_event)
+
         self.logger.info(
             "simulation_starting",
             name=self.config.simulation.name,
@@ -576,8 +606,26 @@ class SimulationOrchestrator:
 
         # Run simulation turns
         while not self.engine.check_termination(state):
+            # Emit turn_start milestone
+            turn_start_event = create_milestone_event(
+                simulation_id=self.run_id,
+                turn_number=state.turn + 1,
+                milestone_type="turn_start",
+                description=f"Turn {state.turn + 1} started"
+            )
+            self.event_writer.emit(turn_start_event)
+
             state = await self._run_turn_async(state)
             self.history.append(state)
+
+            # Emit turn_end milestone
+            turn_end_event = create_milestone_event(
+                simulation_id=self.run_id,
+                turn_number=state.turn,
+                milestone_type="turn_end",
+                description=f"Turn {state.turn} completed"
+            )
+            self.event_writer.emit(turn_end_event)
 
             # Check if we should save checkpoint
             is_final = self.engine.check_termination(state)
@@ -598,6 +646,18 @@ class SimulationOrchestrator:
             if hasattr(state.global_state, "total_economic_value"):
                 log_data["total_value"] = state.global_state.total_economic_value
             self.logger.info("turn_completed", **log_data)
+
+        # Emit simulation_end milestone
+        end_event = create_milestone_event(
+            simulation_id=self.run_id,
+            turn_number=state.turn,
+            milestone_type="simulation_end",
+            description=f"Simulation completed after {state.turn} turns"
+        )
+        self.event_writer.emit(end_event)
+
+        # Stop event writer and flush events
+        await self.event_writer.stop(timeout=10.0)
 
         # Update run metadata end time
         self.run_metadata = RunMetadata(
