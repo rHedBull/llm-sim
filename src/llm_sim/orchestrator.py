@@ -483,6 +483,10 @@ class SimulationOrchestrator:
             state = self._create_initial_state()
             self.history.append(state)
 
+            # Save initial checkpoint at turn 0
+            self.checkpoint_manager.save_checkpoint(state, "interval")
+            self.logger.info("checkpoint_saved", turn=0, type="initial")
+
             # Run simulation turns
             while not self.engine.check_termination(state):
                 # Emit turn_start milestone
@@ -603,6 +607,10 @@ class SimulationOrchestrator:
         # Initialize state (includes spatial setup if configured)
         state = self._create_initial_state()
         self.history.append(state)
+
+        # Save initial checkpoint at turn 0
+        self.checkpoint_manager.save_checkpoint(state, "interval")
+        self.logger.info("checkpoint_saved", turn=0, type="initial")
 
         # Run simulation turns
         while not self.engine.check_termination(state):
