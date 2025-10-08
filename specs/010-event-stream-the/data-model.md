@@ -212,31 +212,28 @@ EventFilter ───(filters)───> Event (query criteria)
 
 ### 7. SystemEvent (Event)
 
-**Purpose**: Capture system-level events (LLM calls, validation errors, retries)
+**Purpose**: Capture simulation system lifecycle events (simulation/turn start/end)
 
 **Additional Fields**:
 | Field | Type | Required | Description | Validation |
 |-------|------|----------|-------------|------------|
-| error_type | str | No | Error category | Free-form string |
-| status | str | Yes | Event status | Enum: success\|failure\|retry\|warning |
-| retry_count | int | No | Retry attempt number | >= 0 |
+| system_event_type | str | Yes | System event type | Enum: simulation_start\|simulation_end\|turn_start\|turn_end |
+| status | str | No | Optional event status | Free-form string |
+
+**Note**: Infrastructure errors, LLM retries, and validation errors should be logged via structlog, not as SYSTEM events.
 
 **Example**:
 ```json
 {
   "event_id": "01ARZ3NDEKTSV4RRFFQ69G5FB1",
-  "timestamp": "2025-10-04T14:23:49.400000+00:00",
+  "timestamp": "2025-10-04T14:23:00.000000+00:00",
   "turn_number": 1,
   "event_type": "SYSTEM",
   "simulation_id": "my-sim-20251004-142345-3agents",
   "agent_id": null,
-  "description": "LLM API call failed, retrying",
+  "description": "Turn 1 started",
   "details": {
-    "error_type": "connection_timeout",
-    "status": "retry",
-    "retry_count": 1,
-    "llm_model": "llama3",
-    "timeout_ms": 5000
+    "system_event_type": "turn_start"
   }
 }
 ```

@@ -208,33 +208,33 @@ def create_detail_event(
 def create_system_event(
     simulation_id: str,
     turn_number: int,
-    status: str,
-    error_type: Optional[str] = None,
-    retry_count: Optional[int] = None,
+    system_event_type: str,
+    status: Optional[str] = None,
     description: Optional[str] = None,
     caused_by: Optional[List[str]] = None,
     **extra_details: Any,
 ) -> SystemEvent:
-    """Create a system event.
+    """Create a system lifecycle event.
 
     Args:
         simulation_id: Simulation run identifier
         turn_number: Current turn number
-        status: Event status (success, failure, retry, warning)
-        error_type: Optional error type
-        retry_count: Optional retry attempt count
+        system_event_type: Type of system event (simulation_start, simulation_end, turn_start, turn_end)
+        status: Optional event status
         description: Optional human-readable description
         caused_by: Optional list of causal event IDs
         **extra_details: Additional details to include
 
     Returns:
         SystemEvent instance
+
+    Note:
+        Infrastructure errors, LLM retries, and validation errors should be logged
+        via structlog, not as SYSTEM events.
     """
-    details: Dict[str, Any] = {"status": status}
-    if error_type:
-        details["error_type"] = error_type
-    if retry_count is not None:
-        details["retry_count"] = retry_count
+    details: Dict[str, Any] = {"system_event_type": system_event_type}
+    if status:
+        details["status"] = status
     details.update(extra_details)
 
     return SystemEvent(

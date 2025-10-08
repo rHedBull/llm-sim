@@ -108,8 +108,8 @@ Events are captured based on the configured verbosity level. Each level includes
 | **MILESTONE** | Turn boundaries, simulation start/end | Minimal logging |
 | **DECISION** | MILESTONE + agent decisions, policy changes | Strategic overview |
 | **ACTION** ⭐ | DECISION + agent actions, transactions | **Default - balanced** |
-| **STATE** | ACTION + state variable changes | Detailed state tracking |
-| **DETAIL** | STATE + calculations, system events | Full observability |
+| **ENV** | ACTION + environment/state variable changes | Detailed state tracking |
+| **DETAIL** | ENV + calculations, system lifecycle events | Full observability |
 
 **Default**: `ACTION` level provides balanced observability without excessive detail.
 
@@ -119,9 +119,9 @@ Events are captured based on the configured verbosity level. Each level includes
 MILESTONE  ─┐
             ├─ DECISION  ─┐
                           ├─ ACTION  ─┐
-                                      ├─ STATE  ─┐
-                                                  ├─ DETAIL
-                                                  └─ SYSTEM
+                                      ├─ ENV  ─┐
+                                               ├─ DETAIL
+                                               └─ SYSTEM
 ```
 
 ## Event Types
@@ -153,17 +153,18 @@ Example:
 **Fields**: `action_type`, `action_payload`
 **Requires**: `agent_id`
 
-### STATE Events
-**Captures**: State variable transitions
+### ENV Events
+**Captures**: Environment/state variable transitions
 **Fields**: `variable_name`, `old_value`, `new_value`, `scope` (global/agent)
+**Note**: Formerly called STATE events; StateEvent is aliased to EnvEvent for backward compatibility
 
 ### DETAIL Events
 **Captures**: Calculations, intermediate values
 **Fields**: `calculation_type`, `intermediate_values`
 
 ### SYSTEM Events
-**Captures**: LLM calls, errors, retries
-**Fields**: `error_type`, `status`, `retry_count`
+**Captures**: Simulation system lifecycle events (simulation start/end, turn start/end)
+**Fields**: `system_event_type`, `status` (optional)
 
 ## Event Schema
 
@@ -328,18 +329,20 @@ The API's `/causality` endpoint traverses this graph to show:
 ### Custom Event Emission
 
 ```python
-from llm_sim.infrastructure.events import create_system_event
+from llm_sim.infrastructure.events import create_action_event
 
-# Emit custom system event
-event = create_system_event(
+# Emit custom action event
+event = create_action_event(
     simulation_id=sim_id,
     turn_number=current_turn,
-    status="warning",
-    error_type="timeout",
-    retry_count=2,
-    description="LLM API timed out, retrying",
-    llm_model="llama3",
-    timeout_ms=5000
+    agent_id="agent_alice",
+    action_type="trade",
+    action_payload={
+        "partner": "agent_bob",
+        "offer": {"gold": 100},
+        "request": {"food": 50}
+    },
+    description="Alice initiated trade with Bob"
 )
 orchestrator.event_writer.emit(event)
 ```

@@ -156,7 +156,7 @@ class DetailEvent(Event):
 
 
 class SystemEvent(Event):
-    """Event for system-level events (LLM calls, validation errors, retries)."""
+    """Event for simulation system lifecycle events (simulation/turn start/end)."""
 
     event_type: Literal["SYSTEM"] = "SYSTEM"
 
@@ -167,19 +167,14 @@ class SystemEvent(Event):
             self.details = {}
 
     @property
-    def error_type(self) -> Optional[str]:
-        """Get error type from details."""
-        return self.details.get("error_type") if self.details else None
+    def system_event_type(self) -> Optional[str]:
+        """Get system event type from details."""
+        return self.details.get("system_event_type") if self.details else None
 
     @property
     def status(self) -> Optional[str]:
         """Get status from details."""
         return self.details.get("status") if self.details else None
-
-    @property
-    def retry_count(self) -> Optional[int]:
-        """Get retry count from details."""
-        return self.details.get("retry_count") if self.details else None
 
 
 # Backward compatibility alias
