@@ -2,9 +2,12 @@
 
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Type
 from pydantic import BaseModel, ConfigDict, Field, create_model, field_serializer, field_validator, model_validator
+import structlog
 
 from llm_sim.models.llm_models import LLMReasoningChain
 from llm_sim.models.config import VariableDefinition
+
+logger = structlog.get_logger(__name__)
 
 
 # NOTE: AgentState and GlobalState are now created dynamically using factory functions
@@ -238,6 +241,8 @@ def create_agent_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[Ba
     Returns:
         Dynamically created Pydantic model class for AgentState
     """
+    from typing import Annotated, Literal
+
     fields: Dict[str, Any] = {"name": (str, ...)}  # Required field
 
     for var_name, var_def in var_defs.items():
@@ -261,15 +266,86 @@ def create_agent_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[Ba
             fields[var_name] = (bool, Field(default=var_def.default))
 
         elif var_def.type == "categorical":
-            from typing import Literal
-
             # Create Literal type from values
             literal_type = Literal[tuple(var_def.values)]  # type: ignore
             fields[var_name] = (literal_type, Field(default=var_def.default))
 
-    # Create the base model
+        elif var_def.type == "dict":
+            # Dict type with dynamic keys or fixed schema
+            if var_def.schema:
+                # Fixed schema mode - create nested model
+                logger.debug(
+                    "Creating dict with fixed schema",
+                    field_name=var_name,
+                    schema_fields=list(var_def.schema.keys())
+                )
+                nested_model = _create_nested_model_from_schema(var_def.schema, f"{var_name}_schema")
+                fields[var_name] = (nested_model, Field(default_factory=lambda: nested_model(**var_def.default) if var_def.default else nested_model()))
+            else:
+                # Dynamic keys mode
+                key_type = str if var_def.key_type == "str" else int
+                value_type = _resolve_field_type(var_def.value_type)
+                logger.debug(
+                    "Creating dict with dynamic keys",
+                    field_name=var_name,
+                    key_type=var_def.key_type,
+                    value_type=str(value_type)
+                )
+
+                # Add max_length constraint (1000 items max)
+                dict_type = Annotated[dict[key_type, value_type], Field(default_factory=dict, max_length=1000)]
+                fields[var_name] = (dict_type, var_def.default if var_def.default is not None else {})
+
+        elif var_def.type == "list":
+            # List type with item type constraint
+            item_type = _resolve_field_type(var_def.item_type)
+            max_len = var_def.max_length if var_def.max_length is not None else 1000
+
+            list_type = Annotated[list[item_type], Field(default_factory=list, max_length=max_len)]
+            fields[var_name] = (list_type, var_def.default if var_def.default is not None else [])
+
+        elif var_def.type == "tuple":
+            # Tuple type with per-element types
+            if var_def.item_types:
+                element_types = [_resolve_field_type(t) for t in var_def.item_types]
+                tuple_type = tuple[tuple(element_types)]  # type: ignore
+                fields[var_name] = (tuple_type, Field(default=var_def.default))
+            else:
+                fields[var_name] = (tuple, Field(default=var_def.default))
+
+        elif var_def.type == "str":
+            # String type with optional pattern and max_length
+            field_args = {"default": var_def.default}
+            if var_def.pattern is not None:
+                field_args["pattern"] = var_def.pattern
+            if var_def.max_length is not None:
+                field_args["max_length"] = var_def.max_length
+
+            # Make Optional if default is None
+            base_str_type = str if var_def.default is not None else Optional[str]
+
+            if var_def.pattern or var_def.max_length:
+                str_type = Annotated[base_str_type, Field(**field_args)]
+                fields[var_name] = (str_type, var_def.default)
+            else:
+                fields[var_name] = (base_str_type, Field(**field_args))
+
+        elif var_def.type == "object":
+            # Object type with nested schema
+            if var_def.schema:
+                nested_model = _create_nested_model_from_schema(var_def.schema, f"{var_name}_object")
+                fields[var_name] = (nested_model, Field(default_factory=lambda: nested_model(**var_def.default) if var_def.default else nested_model()))
+
+    # Create the base model with string caching for dict-heavy models
     model = create_model(
-        "AgentState", __config__=ConfigDict(frozen=True, arbitrary_types_allowed=True), **fields
+        "AgentState",
+        __config__=ConfigDict(
+            frozen=True,
+            arbitrary_types_allowed=True,
+            str_strip_whitespace=True,
+            validate_assignment=True,
+        ),
+        **fields
     )
 
     # Override model_copy to include validation
@@ -297,6 +373,8 @@ def create_global_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[B
     Returns:
         Dynamically created Pydantic model class for GlobalState
     """
+    from typing import Annotated, Literal
+
     fields: Dict[str, Any] = {}
 
     for var_name, var_def in var_defs.items():
@@ -320,15 +398,86 @@ def create_global_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[B
             fields[var_name] = (bool, Field(default=var_def.default))
 
         elif var_def.type == "categorical":
-            from typing import Literal
-
             # Create Literal type from values
             literal_type = Literal[tuple(var_def.values)]  # type: ignore
             fields[var_name] = (literal_type, Field(default=var_def.default))
 
+        elif var_def.type == "dict":
+            # Dict type with dynamic keys or fixed schema
+            if var_def.schema:
+                # Fixed schema mode - create nested model
+                logger.debug(
+                    "Creating dict with fixed schema",
+                    field_name=var_name,
+                    schema_fields=list(var_def.schema.keys())
+                )
+                nested_model = _create_nested_model_from_schema(var_def.schema, f"{var_name}_schema")
+                fields[var_name] = (nested_model, Field(default_factory=lambda: nested_model(**var_def.default) if var_def.default else nested_model()))
+            else:
+                # Dynamic keys mode
+                key_type = str if var_def.key_type == "str" else int
+                value_type = _resolve_field_type(var_def.value_type)
+                logger.debug(
+                    "Creating dict with dynamic keys",
+                    field_name=var_name,
+                    key_type=var_def.key_type,
+                    value_type=str(value_type)
+                )
+
+                # Add max_length constraint (1000 items max)
+                dict_type = Annotated[dict[key_type, value_type], Field(default_factory=dict, max_length=1000)]
+                fields[var_name] = (dict_type, var_def.default if var_def.default is not None else {})
+
+        elif var_def.type == "list":
+            # List type with item type constraint
+            item_type = _resolve_field_type(var_def.item_type)
+            max_len = var_def.max_length if var_def.max_length is not None else 1000
+
+            list_type = Annotated[list[item_type], Field(default_factory=list, max_length=max_len)]
+            fields[var_name] = (list_type, var_def.default if var_def.default is not None else [])
+
+        elif var_def.type == "tuple":
+            # Tuple type with per-element types
+            if var_def.item_types:
+                element_types = [_resolve_field_type(t) for t in var_def.item_types]
+                tuple_type = tuple[tuple(element_types)]  # type: ignore
+                fields[var_name] = (tuple_type, Field(default=var_def.default))
+            else:
+                fields[var_name] = (tuple, Field(default=var_def.default))
+
+        elif var_def.type == "str":
+            # String type with optional pattern and max_length
+            field_args = {"default": var_def.default}
+            if var_def.pattern is not None:
+                field_args["pattern"] = var_def.pattern
+            if var_def.max_length is not None:
+                field_args["max_length"] = var_def.max_length
+
+            # Make Optional if default is None
+            base_str_type = str if var_def.default is not None else Optional[str]
+
+            if var_def.pattern or var_def.max_length:
+                str_type = Annotated[base_str_type, Field(**field_args)]
+                fields[var_name] = (str_type, var_def.default)
+            else:
+                fields[var_name] = (base_str_type, Field(**field_args))
+
+        elif var_def.type == "object":
+            # Object type with nested schema
+            if var_def.schema:
+                nested_model = _create_nested_model_from_schema(var_def.schema, f"{var_name}_object")
+                fields[var_name] = (nested_model, Field(default_factory=lambda: nested_model(**var_def.default) if var_def.default else nested_model()))
+
     # Create the base model
     model = create_model(
-        "GlobalState", __config__=ConfigDict(frozen=True, arbitrary_types_allowed=True), **fields
+        "GlobalState",
+        __config__=ConfigDict(
+            frozen=True,
+            arbitrary_types_allowed=True,
+            str_strip_whitespace=True,
+            validate_assignment=True,
+        ),
+        **fields
     )
 
     # Override model_copy to include validation
@@ -343,5 +492,126 @@ def create_global_state_model(var_defs: Dict[str, VariableDefinition]) -> Type[B
         return model(**data)
 
     model.model_copy = validated_model_copy  # type: ignore
+
+    return model
+
+
+def _resolve_field_type(type_spec: Any) -> type:
+    """Resolve a type specification to a Python type for Pydantic fields.
+
+    Args:
+        type_spec: Either a string type name or a VariableDefinition
+
+    Returns:
+        Python type for use in Pydantic field
+    """
+    if isinstance(type_spec, str):
+        # String type name
+        type_map = {
+            "float": float,
+            "int": int,
+            "bool": bool,
+            "str": str,
+        }
+        return type_map.get(type_spec, str)
+    elif isinstance(type_spec, VariableDefinition):
+        # Nested VariableDefinition - recursively build type
+        from llm_sim.utils.type_helpers import get_type_annotation
+        return get_type_annotation(type_spec)
+    else:
+        return str  # Fallback
+
+
+def _create_nested_model_from_schema(
+    schema: Dict[str, VariableDefinition], model_name: str
+) -> Type[BaseModel]:
+    """Create a nested Pydantic model from a schema dictionary.
+
+    Args:
+        schema: Dictionary mapping field names to VariableDefinitions
+        model_name: Name for the generated model class
+
+    Returns:
+        Dynamically created Pydantic model class
+    """
+    from typing import Annotated, Literal
+
+    fields: Dict[str, Any] = {}
+
+    for field_name, var_def in schema.items():
+        if var_def.type == "float":
+            field_args = {"default": var_def.default}
+            if var_def.min is not None:
+                field_args["ge"] = var_def.min
+            if var_def.max is not None:
+                field_args["le"] = var_def.max
+            fields[field_name] = (float, Field(**field_args))
+
+        elif var_def.type == "int":
+            field_args = {"default": var_def.default}
+            if var_def.min is not None:
+                field_args["ge"] = int(var_def.min)
+            if var_def.max is not None:
+                field_args["le"] = int(var_def.max)
+            fields[field_name] = (int, Field(**field_args))
+
+        elif var_def.type == "bool":
+            fields[field_name] = (bool, Field(default=var_def.default))
+
+        elif var_def.type == "categorical":
+            literal_type = Literal[tuple(var_def.values)]  # type: ignore
+            fields[field_name] = (literal_type, Field(default=var_def.default))
+
+        elif var_def.type == "dict":
+            if var_def.schema:
+                # Nested dict with schema
+                nested_model = _create_nested_model_from_schema(var_def.schema, f"{field_name}_nested")
+                fields[field_name] = (nested_model, Field(default_factory=lambda: nested_model(**var_def.default) if var_def.default else nested_model()))
+            else:
+                # Dynamic keys
+                key_type = str if var_def.key_type == "str" else int
+                value_type = _resolve_field_type(var_def.value_type)
+                dict_type = Annotated[dict[key_type, value_type], Field(default_factory=dict, max_length=1000)]
+                fields[field_name] = (dict_type, var_def.default if var_def.default is not None else {})
+
+        elif var_def.type == "list":
+            item_type = _resolve_field_type(var_def.item_type)
+            max_len = var_def.max_length if var_def.max_length is not None else 1000
+            list_type = Annotated[list[item_type], Field(default_factory=list, max_length=max_len)]
+            fields[field_name] = (list_type, var_def.default if var_def.default is not None else [])
+
+        elif var_def.type == "tuple":
+            if var_def.item_types:
+                element_types = [_resolve_field_type(t) for t in var_def.item_types]
+                tuple_type = tuple[tuple(element_types)]  # type: ignore
+                fields[field_name] = (tuple_type, Field(default=var_def.default))
+
+        elif var_def.type == "str":
+            field_args = {"default": var_def.default}
+            if var_def.pattern is not None:
+                field_args["pattern"] = var_def.pattern
+            if var_def.max_length is not None:
+                field_args["max_length"] = var_def.max_length
+
+            # Make Optional if default is None
+            base_str_type = str if var_def.default is not None else Optional[str]
+
+            if var_def.pattern or var_def.max_length:
+                str_type = Annotated[base_str_type, Field(**field_args)]
+                fields[field_name] = (str_type, var_def.default)
+            else:
+                fields[field_name] = (base_str_type, Field(**field_args))
+
+        elif var_def.type == "object":
+            if var_def.schema:
+                nested_model = _create_nested_model_from_schema(var_def.schema, f"{field_name}_object")
+                fields[field_name] = (nested_model, Field(default_factory=lambda: nested_model(**var_def.default) if var_def.default else nested_model()))
+
+    # Create nested model
+    model = create_model(
+        model_name,
+        __config__=ConfigDict(frozen=True, arbitrary_types_allowed=True),
+        **fields
+    )
 
     return model

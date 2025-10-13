@@ -1,0 +1,437 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-sim.example.com/schemas/variable-definition.json",
+  "title": "VariableDefinition",
+  "description": "Extended variable definition schema with support for scalar and complex data types",
+  "type": "object",
+  "required": ["type", "default"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["float", "int", "bool", "categorical", "dict", "list", "tuple", "str", "object"],
+      "description": "The data type of the variable"
+    },
+    "default": {
+      "description": "Default value for the variable (type depends on 'type' field)",
+      "oneOf": [
+        {"type": "number"},
+        {"type": "integer"},
+        {"type": "boolean"},
+        {"type": "string"},
+        {"type": "object"},
+        {"type": "array"},
+        {"type": "null"}
+      ]
+    },
+    "min": {
+      "type": "number",
+      "description": "Minimum value constraint (for float/int types)"
+    },
+    "max": {
+      "type": "number",
+      "description": "Maximum value constraint (for float/int types)"
+    },
+    "values": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "description": "Allowed values (required for categorical type)"
+    },
+    "key_type": {
+      "type": "string",
+      "enum": ["str", "int"],
+      "description": "Key type for dict with dynamic keys"
+    },
+    "value_type": {
+      "description": "Value type for dict or item type for list (scalar type string or nested VariableDefinition)",
+      "oneOf": [
+        {"type": "string", "enum": ["float", "int", "bool", "str", "categorical"]},
+        {"$ref": "#"}
+      ]
+    },
+    "item_type": {
+      "description": "Item type for list (scalar type string or nested VariableDefinition)",
+      "oneOf": [
+        {"type": "string", "enum": ["float", "int", "bool", "str", "categorical"]},
+        {"$ref": "#"}
+      ]
+    },
+    "item_types": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"type": "string", "enum": ["float", "int", "bool", "str", "categorical"]},
+          {"$ref": "#"}
+        ]
+      },
+      "minItems": 1,
+      "description": "Element types for tuple (one per position)"
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#"},
+      "description": "Fixed schema for dict/object types (maps field names to VariableDefinition)"
+    },
+    "pattern": {
+      "type": "string",
+      "description": "Regex pattern for string validation"
+    },
+    "max_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000,
+      "description": "Maximum length for string or list"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"type": {"const": "float"}}
+      },
+      "then": {
+        "properties": {
+          "default": {"type": "number"},
+          "min": {"type": "number"},
+          "max": {"type": "number"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "int"}}
+      },
+      "then": {
+        "properties": {
+          "default": {"type": "integer"},
+          "min": {"type": "number"},
+          "max": {"type": "number"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "bool"}}
+      },
+      "then": {
+        "properties": {
+          "default": {"type": "boolean"}
+        },
+        "not": {
+          "anyOf": [
+            {"required": ["min"]},
+            {"required": ["max"]},
+            {"required": ["values"]},
+            {"required": ["key_type"]},
+            {"required": ["value_type"]},
+            {"required": ["item_type"]},
+            {"required": ["item_types"]},
+            {"required": ["schema"]},
+            {"required": ["pattern"]},
+            {"required": ["max_length"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "categorical"}}
+      },
+      "then": {
+        "required": ["values"],
+        "properties": {
+          "default": {"type": "string"},
+          "values": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+          }
+        },
+        "not": {
+          "anyOf": [
+            {"required": ["min"]},
+            {"required": ["max"]},
+            {"required": ["key_type"]},
+            {"required": ["value_type"]},
+            {"required": ["item_type"]},
+            {"required": ["item_types"]},
+            {"required": ["schema"]},
+            {"required": ["pattern"]},
+            {"required": ["max_length"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "dict"}}
+      },
+      "then": {
+        "properties": {
+          "default": {"type": "object"}
+        },
+        "oneOf": [
+          {
+            "required": ["key_type", "value_type"],
+            "not": {"required": ["schema"]},
+            "description": "Dynamic keys mode: requires key_type and value_type"
+          },
+          {
+            "required": ["schema"],
+            "not": {
+              "anyOf": [
+                {"required": ["key_type"]},
+                {"required": ["value_type"]}
+              ]
+            },
+            "description": "Fixed schema mode: requires schema, excludes key_type/value_type"
+          }
+        ],
+        "not": {
+          "anyOf": [
+            {"required": ["min"]},
+            {"required": ["max"]},
+            {"required": ["values"]},
+            {"required": ["item_type"]},
+            {"required": ["item_types"]},
+            {"required": ["pattern"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "list"}}
+      },
+      "then": {
+        "required": ["item_type"],
+        "properties": {
+          "default": {"type": "array"},
+          "max_length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "not": {
+          "anyOf": [
+            {"required": ["min"]},
+            {"required": ["max"]},
+            {"required": ["values"]},
+            {"required": ["key_type"]},
+            {"required": ["value_type"]},
+            {"required": ["item_types"]},
+            {"required": ["schema"]},
+            {"required": ["pattern"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "tuple"}}
+      },
+      "then": {
+        "required": ["item_types"],
+        "properties": {
+          "default": {"type": "array"}
+        },
+        "not": {
+          "anyOf": [
+            {"required": ["min"]},
+            {"required": ["max"]},
+            {"required": ["values"]},
+            {"required": ["key_type"]},
+            {"required": ["value_type"]},
+            {"required": ["item_type"]},
+            {"required": ["schema"]},
+            {"required": ["pattern"]},
+            {"required": ["max_length"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "str"}}
+      },
+      "then": {
+        "properties": {
+          "default": {
+            "oneOf": [
+              {"type": "string"},
+              {"type": "null"}
+            ]
+          },
+          "pattern": {"type": "string"},
+          "max_length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        },
+        "not": {
+          "anyOf": [
+            {"required": ["min"]},
+            {"required": ["max"]},
+            {"required": ["values"]},
+            {"required": ["key_type"]},
+            {"required": ["value_type"]},
+            {"required": ["item_type"]},
+            {"required": ["item_types"]},
+            {"required": ["schema"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "object"}}
+      },
+      "then": {
+        "required": ["schema"],
+        "properties": {
+          "default": {"type": "object"}
+        },
+        "not": {
+          "anyOf": [
+            {"required": ["min"]},
+            {"required": ["max"]},
+            {"required": ["values"]},
+            {"required": ["key_type"]},
+            {"required": ["value_type"]},
+            {"required": ["item_type"]},
+            {"required": ["item_types"]},
+            {"required": ["pattern"]},
+            {"required": ["max_length"]}
+          ]
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "description": "Float variable with constraints",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0
+    },
+    {
+      "description": "Categorical variable",
+      "type": "categorical",
+      "values": ["idle", "active", "paused"],
+      "default": "idle"
+    },
+    {
+      "description": "Dict with dynamic string keys and float values",
+      "type": "dict",
+      "key_type": "str",
+      "value_type": "float",
+      "default": {}
+    },
+    {
+      "description": "Dict with fixed schema",
+      "type": "dict",
+      "schema": {
+        "health": {
+          "type": "float",
+          "min": 0.0,
+          "max": 100.0,
+          "default": 100.0
+        },
+        "mana": {
+          "type": "float",
+          "min": 0.0,
+          "max": 100.0,
+          "default": 50.0
+        }
+      },
+      "default": {
+        "health": 100.0,
+        "mana": 50.0
+      }
+    },
+    {
+      "description": "List of strings with max length",
+      "type": "list",
+      "item_type": "str",
+      "max_length": 10,
+      "default": []
+    },
+    {
+      "description": "List of tuples (position history)",
+      "type": "list",
+      "item_type": {
+        "type": "tuple",
+        "item_types": ["float", "float"]
+      },
+      "max_length": 100,
+      "default": []
+    },
+    {
+      "description": "Tuple for 2D coordinates",
+      "type": "tuple",
+      "item_types": ["float", "float"],
+      "default": [0.0, 0.0]
+    },
+    {
+      "description": "Tuple with per-element constraints (RGB color)",
+      "type": "tuple",
+      "item_types": [
+        {"type": "int", "min": 0, "max": 255},
+        {"type": "int", "min": 0, "max": 255},
+        {"type": "int", "min": 0, "max": 255}
+      ],
+      "default": [255, 255, 255]
+    },
+    {
+      "description": "String with pattern validation",
+      "type": "str",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
+      "max_length": 50,
+      "default": "Agent_1"
+    },
+    {
+      "description": "Nullable unrestricted string",
+      "type": "str",
+      "default": null
+    },
+    {
+      "description": "Object with nested schema",
+      "type": "object",
+      "schema": {
+        "name": {
+          "type": "str",
+          "default": "Town"
+        },
+        "position": {
+          "type": "tuple",
+          "item_types": ["float", "float"],
+          "default": [0.0, 0.0]
+        },
+        "population": {
+          "type": "int",
+          "min": 0,
+          "default": 1000
+        }
+      },
+      "default": {
+        "name": "Town",
+        "position": [0.0, 0.0],
+        "population": 1000
+      }
+    },
+    {
+      "description": "Nested dict (towns with resources)",
+      "type": "dict",
+      "key_type": "str",
+      "value_type": {
+        "type": "dict",
+        "key_type": "str",
+        "value_type": "float"
+      },
+      "default": {}
+    }
+  ],
+  "additionalProperties": false
+}
