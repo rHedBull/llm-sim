@@ -1,0 +1,35 @@
+# Trading Simulation Example - Complex Data Types
+# This file will be populated with examples of dict, list, tuple, str, and object types
+# in User Story 5 (T074)
+
+simulation:
+  name: "Trading World"
+  max_turns: 100
+  checkpoint_interval: 10
+
+engine:
+  type: simple_economic
+
+agents:
+  - name: Trader_1
+    type: trader
+  - name: Trader_2
+    type: trader
+
+state_variables:
+  agent_vars:
+    # Complex types will be added here
+    # TODO: Add in US1 (dict), US2 (tuple), US3 (list), US4 (str)
+    pass
+
+  global_vars:
+    # Complex types will be added here
+    pass
+
+validator:
+  type: llm_validator
+  domain: trading
+
+llm:
+  model: "gemma:3"
+  host: "http://localhost:11434"

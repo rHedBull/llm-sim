@@ -157,17 +157,33 @@ class LoggingConfig(BaseModel):
 
 
 class VariableDefinition(BaseModel):
-    """Definition of a single state variable."""
+    """Definition of a single state variable with scalar and complex type support."""
 
-    type: Literal["float", "int", "bool", "categorical"]
+    type: Literal["float", "int", "bool", "categorical", "dict", "list", "tuple", "str", "object"]
+
+    # Scalar type fields (existing - unchanged)
     min: Optional[float] = None
     max: Optional[float] = None
     values: Optional[List[str]] = None
-    default: Union[float, int, bool, str]
+    default: Union[float, int, bool, str, dict, list, tuple, None] = None
+
+    # Complex type fields (new)
+    key_type: Optional[Literal["str", "int"]] = None  # For dict keys
+    value_type: Optional[Union[str, "VariableDefinition"]] = None  # For dict values
+    item_type: Optional[Union[str, "VariableDefinition"]] = None  # For list item type
+    item_types: Optional[List[Union[str, "VariableDefinition"]]] = None  # For tuple elements
+    schema: Optional[Dict[str, "VariableDefinition"]] = None  # For object/dict fixed schema
+    pattern: Optional[str] = None  # For str regex validation
+    max_length: Optional[int] = None  # For str/list length constraint
 
     @model_validator(mode="after")
     def validate_variable_definition(self) -> "VariableDefinition":
         """Validate variable definition based on type."""
+        # Scalar types require non-None default
+        if self.type in ("float", "int", "bool", "categorical"):
+            if self.default is None:
+                raise ValueError(f"{self.type} type requires 'default' field")
+
         # Categorical must have values
         if self.type == "categorical":
             if not self.values:
@@ -180,19 +196,65 @@ class VariableDefinition(BaseModel):
                 )
 
         # Numeric types: check min/max constraints
-        if self.type in ("float", "int"):
+        elif self.type in ("float", "int"):
             if self.min is not None and self.max is not None and self.min > self.max:
                 raise ValueError(f"min ({self.min}) cannot be greater than max ({self.max})")
 
-            if self.min is not None and self.default < self.min:
+            if self.default is not None:
+                if self.min is not None and self.default < self.min:
+                    raise ValueError(
+                        f"Default value {self.default} is below minimum {self.min}"
+                    )
+
+                if self.max is not None and self.default > self.max:
+                    raise ValueError(
+                        f"Default value {self.default} is above maximum {self.max}"
+                    )
+
+        # Dict type: must have either (key_type + value_type) or schema
+        elif self.type == "dict":
+            has_dynamic_keys = self.key_type is not None and self.value_type is not None
+            has_schema = self.schema is not None
+
+            if not has_dynamic_keys and not has_schema:
                 raise ValueError(
-                    f"Default value {self.default} is below minimum {self.min}"
+                    "Dict type requires either (key_type + value_type) or schema"
+                )
+            if has_dynamic_keys and has_schema:
+                raise ValueError(
+                    "Dict type cannot have both (key_type + value_type) and schema - choose one"
                 )
 
-            if self.max is not None and self.default > self.max:
-                raise ValueError(
-                    f"Default value {self.default} is above maximum {self.max}"
-                )
+        # List type: must have item_type
+        elif self.type == "list":
+            if self.item_type is None:
+                raise ValueError("List type requires 'item_type' field")
+            if self.max_length is not None and self.max_length <= 0:
+                raise ValueError("max_length must be greater than 0")
+
+        # Tuple type: must have item_types
+        elif self.type == "tuple":
+            if not self.item_types:
+                raise ValueError("Tuple type requires 'item_types' field")
+            if len(self.item_types) == 0:
+                raise ValueError("Tuple 'item_types' list cannot be empty")
+            # Validate default length matches item_types length
+            if self.default is not None:
+                if isinstance(self.default, (list, tuple)):
+                    if len(self.default) != len(self.item_types):
+                        raise ValueError(
+                            f"Tuple default length ({len(self.default)}) must match item_types length ({len(self.item_types)})"
+                        )
+
+        # String type: optional pattern and max_length
+        elif self.type == "str":
+            if self.max_length is not None and self.max_length <= 0:
+                raise ValueError("max_length must be greater than 0")
+
+        # Object type: must have schema
+        elif self.type == "object":
+            if not self.schema:
+                raise ValueError("Object type requires 'schema' field")
 
         return self
 
